@@ -1,100 +1,66 @@
 package com.altnoir.abysslib.creative;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackLinkedSet;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 
 /**
- * 分区式创造栏（CreativeModeTab 子类）。
- * 通过 {@link #configure} 把若干 {@link ALCreativeTabSection} 挂到标签页上：
- * 构建时按分区顺序输出条目，同一物品去重。
- * 横幅 N 格 = 分区标题行行首 N 格被横幅占据，物品从横幅右侧同行接续排布
- * （N=9 时横幅独占一整行、物品从下一行开始，即原版式布局）。
+ * 分区式创造栏（照 MIA-26.1 SectionedCreativeModeTab 移植）。
+ *
+ * <p>内容按分区划分为带标题、可滚动的区块；每个分区为其标题保留一整行物品格。
+ * 客户端渲染器绘制该行，物品网格/滚动/搜索仍交给原版。</p>
  */
 public final class ALSectionedCreativeModeTab extends CreativeModeTab {
     private static final int COLUMNS = 9;
     private static final int VISIBLE_ROWS = 5;
 
     private final List<ALCreativeTabSection> sections;
-    private final Consumer<ItemDisplayParameters> populator;
-    private final ALBannerStyle bannerStyle;
     private Collection<ItemStack> displayItems = List.of();
     private Set<ItemStack> searchItems = ItemStackLinkedSet.createTypeAndComponentsSet();
     private List<SectionLayout> sectionLayouts = List.of();
-    @Nullable
-    private ItemDisplayParameters cachedParameters;
 
-    private ALSectionedCreativeModeTab(Builder builder, List<ALCreativeTabSection> sections, ALBannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator) {
+    private ALSectionedCreativeModeTab(Builder builder, List<ALCreativeTabSection> sections) {
         super(builder);
         this.sections = List.copyOf(sections);
-        this.bannerStyle = bannerStyle;
-        this.populator = populator;
     }
 
-    /** 使用 AbyssLib 默认横幅样式（{@link ALBannerStyle#DEFAULT}）构建。 */
-    public static Builder configure(Builder builder, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
-        return configure(builder, ALBannerStyle.DEFAULT, populator, sections);
-    }
-
-    /**
-     * 指定横幅样式构建：每个标签页可独立使用自己的纯色或贴图横幅
-     * （见 {@link ALBannerStyle}），不指定则用默认样式。
-     */
-    public static Builder configure(Builder builder, ALBannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
+    public static Builder configure(Builder builder, ALCreativeTabSection... sections) {
         List<ALCreativeTabSection> sectionList = List.of(sections);
-        return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList, bannerStyle, populator));
-    }
-
-    /** 本标签页使用的横幅样式（渲染器按此绘制分区标题行）。 */
-    public ALBannerStyle bannerStyle() {
-        return bannerStyle;
+        return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList));
     }
 
     @Override
     public void buildContents(ItemDisplayParameters parameters) {
-        this.cachedParameters = parameters;
-        sections.forEach(ALCreativeTabSection::clear);
-        populator.accept(parameters);
-
         List<ItemStack> newDisplayItems = new ArrayList<>();
         Set<ItemStack> newSearchItems = ItemStackLinkedSet.createTypeAndComponentsSet();
         Set<ItemStack> seenDisplayItems = ItemStackLinkedSet.createTypeAndComponentsSet();
         List<SectionLayout> newLayouts = new ArrayList<>();
 
         for (ALCreativeTabSection section : sections) {
-            List<ItemStack> enabledItems = section.itemStacks().stream()
-                    .filter(stack -> stack.getItem().isEnabled(parameters.enabledFeatures()))
-                    .filter(seenDisplayItems::add)
-                    .toList();
+            List<ItemStack> enabledItems = new ArrayList<>();
+            for (ItemStack stack : section.itemStacks()) {
+                if (stack.getItem().isEnabled(parameters.enabledFeatures()) && seenDisplayItems.add(stack)) {
+                    enabledItems.add(stack);
+                    newSearchItems.add(stack);
+                }
+            }
+
             if (enabledItems.isEmpty()) {
                 continue;
             }
 
-            // 横幅 N 格 = 该行行首 N 格为空（渲染器在此画横幅），物品从第 N+1 格同行接续；
-            // N=9 时横幅独占一整行、物品从下一行开始（与原版/默认行为一致）。
-            int columns = bannerStyle().units();
-
             int headingRow = newDisplayItems.size() / COLUMNS;
-            newLayouts.add(new SectionLayout(section.title(), headingRow));
-            if (columns < COLUMNS) {
-                // 横幅只占行首 N 格：留出 N 个空位，物品接着往后排
-                for (int i = 0; i < columns; i++) {
-                    newDisplayItems.add(ItemStack.EMPTY);
-                }
-            } else {
-                // 整行横幅（独占一行）
-                addEmptyRow(newDisplayItems);
-            }
-            newSearchItems.addAll(enabledItems);
+            newLayouts.add(new SectionLayout(section.title(), section.bannerSprite().orElse(null), headingRow));
+            addEmptyRow(newDisplayItems);
             newDisplayItems.addAll(enabledItems);
             padToCompleteRow(newDisplayItems);
         }
@@ -102,12 +68,6 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
         displayItems = List.copyOf(newDisplayItems);
         searchItems = newSearchItems;
         sectionLayouts = List.copyOf(newLayouts);
-    }
-
-    public void rebuild() {
-        if (cachedParameters != null) {
-            buildContents(cachedParameters);
-        }
     }
 
     @Override
@@ -155,6 +115,6 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
         }
     }
 
-    public record SectionLayout(Component title, int headingRow) {
+    public record SectionLayout(Component title, @Nullable Identifier bannerSprite, int headingRow) {
     }
 }

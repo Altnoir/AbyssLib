@@ -4,7 +4,7 @@ plugins {
     id 'idea'
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.143'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -16,51 +16,18 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
-    maven { url = "https://mvn.devos.one/snapshots" } // Registrate
-    maven { url = "https://jitpack.io" } // Simple Bedrock Model（com.github.mcmodderanchor）
+    maven { url = "https://maven.gegy.dev/releases" } // Registrate（26.1 线：MC26.1-1.5.7）
 }
 
 base {
     archivesName = mod_id
 }
 
-// Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// NeoForge 26.1.2 / Java 25
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 neoForge {
-    // Specify the version of NeoForge to use.
     version = project.neo_version
-
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
-
-    runs {
-        client {
-            client()
-            programArgument '--username'
-            programArgument 'Player####'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        data {
-            data()
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-        }
-
-        // applies to all the run configs above
-        configureEach {
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-            logLevel = org.slf4j.event.Level.DEBUG
-        }
-    }
 
     mods {
         "${mod_id}" {
@@ -71,28 +38,26 @@ neoForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+// SBM 26.1 没有公开 maven 坐标：把 libs/ 下的本地 jar 原样重打包（只补 Automatic-Module-Name），
+// 再以 jarJar 内嵌到本库产物，运行期由本库唯一提供（moddev 会自动扁平化其内部的 mae jarjar）。
+def prepareBundledSbm = tasks.register('prepareBundledSbm', Jar) {
+    archiveFileName = project.sbm_local_jar
+    destinationDirectory = layout.buildDirectory.dir('generated/local-libs')
+    from zipTree("libs/${project.sbm_local_jar}")
+    manifest {
+        attributes 'Automatic-Module-Name': 'com.github.mcmodderanchor.simplebedrockmodel'
+    }
+}
+
 dependencies {
-    // 内置 Registrate：本库是它的唯一提供者（运行时用这里的 jarJar 拷贝）。
+    // 内置 Registrate：本库是它的唯一提供者（运行时 jarJar 内嵌）。
     implementation jarJar("com.tterrag.registrate:Registrate:${registrate_version}")
-    // api：把 Registrate 暴露给消费方编译期（module metadata / POM 会以 compile 作用域传递），
-    // 消费方无需再自行 compileOnly Registrate；运行仍只由本库 jarJar 提供。
+    // api：把 Registrate 暴露给消费方编译期（module metadata / POM 以 compile 作用域传递），
+    // 消费方无需再自行声明 Registrate；运行仍只由本库 jarJar 提供。
     api "com.tterrag.registrate:Registrate:${registrate_version}"
-    // 内置 Simple Bedrock Model（简单基岩模型），同样只由本库提供
-    implementation jarJar("com.github.mcmodderanchor:simplebedrockmodel:${sbm_version}-neoforge-mc${minecraft_version}") {
-        version {
-            prefer "${sbm_version}"
-        }
-    }
-    // api：同上，编译期对消费方可见（用其 API 的模组无需自行 compileOnly）
-    api("com.github.mcmodderanchor:simplebedrockmodel:${sbm_version}-neoforge-mc${minecraft_version}") {
-        version {
-            prefer "${sbm_version}"
-        }
-    }
-    // mae：SBM 的动画运行库（运行时由 SBM 的 jar-in-jar 内嵌提供，见 SBM 构件 META-INF/jarjar/）。
-    // 这里只以 compileOnlyApi 暴露给消费方编译期（如直接 import com.maydaymemory.mae.* 的模组），
-    // 不打包、不进运行时，避免运行时出现第二份 mae。
-    compileOnlyApi "com.maydaymemory:mae:1.1.4"
+    // Simple Bedrock Model（26.1）：仅 jarJar 内嵌提供运行时，不 api 暴露
+    // （本地文件依赖无法进入发布元数据；需要直接用 SBM API 的模组各自 compileOnly 本地 libs 副本）。
+    implementation jarJar(files(prepareBundledSbm))
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -119,7 +84,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
-// 发布到本地仓库，供 PoopSky / PoopSky-FilthDomain 等依赖本库的模组使用
+// 发布到本地仓库，供 26.1 线消费方（Made-In-Abyss-26.1 / PoopSky-26.1.2 等）引用
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
