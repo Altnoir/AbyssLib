@@ -49,21 +49,8 @@ public class MyMod {
 
 建自己的分区与标签页：
 
-> **分区标题已开箱即用**：AbyssLib 自带客户端标题渲染器
-> （`ALSectionedCreativeTabRenderer`，随 `AbyssLibClient` 自动注册），消费方无需任何客户端代码。
-> **横幅样式按标签页各自独立**（默认绿色系 `ALBannerStyle.DEFAULT`），建标签页时用
-> `configure(...)` 第二个参数一行指定——纯色或贴图：
->
-> ```java
-> // 纯色横幅（ARGB）：
-> ALSectionedCreativeModeTab.configure(CreativeModeTab.builder().title(...).icon(...),
->         ALBannerStyle.colors(0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
->         MyItemGroups::populate, TS_ITEMS, TS_BLOCKS).build();
->
-> // 贴图横幅：整张 PNG 拉伸铺满 162×18 横幅行，只写路径即可：
-> ALBannerStyle.texture("mymod", "textures/gui/creative/banner");
-> // 等价写法：ALBannerStyle.texture("mymod:textures/gui/creative/banner")
-> ```
+> 分区标题横幅**开箱即用**：客户端渲染随 `AbyssLibClient` 自动注册，消费方无需任何客户端代码。
+> 横幅样式（纯色 / 预设贴图 / 自定义贴图）、"格数"、物品列数联动等详见下方 **2.1 横幅样式**。
 
 ```java
 public final class MyItemGroups {
@@ -121,6 +108,73 @@ public final class MyItems {
 "注册期自动归类"的条目必须能被 populate 覆盖到（如遍历 `getAllItems()` 重新 add），
 或直接使用上述链式 API 手动归类——这与纯 populate 驱动的写法等价。
 
+### 2.1 横幅样式（ALBannerStyle）
+
+分区横幅是每个分区标题上方的那一条色带/贴图。**样式按标签页各自独立**，建标签页时作为
+`ALSectionedCreativeModeTab.configure(...)` 的第二个参数传入；不传则使用 AbyssLib 默认样式
+`ALBannerStyle.DEFAULT`（绿色系纯色，整行）。样式分**纯色**与**贴图**两类，统一用
+"格数"（1~9）描述长度：每格 = 18px（创造栏一格宽），**9 = 整行 162px**。
+
+| API | 说明 |
+|---|---|
+| `ALBannerStyle.colors(背景, 暗边框, 亮边框, 文字)` | 纯色，9 格整行（颜色为 ARGB，如 `0xFF123456`） |
+| `ALBannerStyle.colors(格数, 背景, 暗边框, 亮边框, 文字)` | 纯色 + 指定格数 |
+| `ALBannerStyle.texture(格数)` | 内置预设贴图（见下表） |
+| `ALBannerStyle.texture(格数, "路径")` | 自定义贴图（支持 `"ns:path"` 或 ResourceLocation），拉伸到指定格数 |
+| `样式.withUnits(格数)` | 在已有样式上改格数（纯色/贴图都有） |
+
+**格数与像素宽**：`1→18`、`2→36`、`3→54`、`4→72`、`5→90`、`6→108`、`7→126`、
+`8→144`、`9→162`；越界抛 `IllegalArgumentException`。
+
+**内置预设贴图**：位于本库 jar 的 `assets/abysslib/textures/gui/section/banner_1~9.png`，
+N 号贴图宽 N×18、高 18，与格数精确对应，`texture(N)` 自动引入、像素级 1:1：
+
+| `texture(n)` | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| 对应像素宽 | 18 | 36 | 54 | 72 | 90 | 108 | 126 | 144 | 162 |
+
+完整示例：
+
+```java
+public final class MyItemGroups {
+    // …TS_ITEMS / TS_BLOCKS 等分区同上…
+
+    // 方式一：内置预设贴图，只写格数（texture(4) → banner_4.png，72px）
+    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_A = REGISTRATE.generic("tab_a",
+            Registries.CREATIVE_MODE_TAB, () ->
+                    ALSectionedCreativeModeTab.configure(
+                            CreativeModeTab.builder()
+                                    .title(Component.translatable("itemGroup.mymod.a"))
+                                    .icon(MyItems.SOME_ITEM::asStack),
+                            ALBannerStyle.texture(4),
+                            MyItemGroups::populate, TS_ITEMS
+                    ).build()
+    ).register();
+
+    // 方式二：纯色 + 自定义格数（颜色模式同样支持长度）
+    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_B = REGISTRATE.generic("tab_b",
+            Registries.CREATIVE_MODE_TAB, () ->
+                    ALSectionedCreativeModeTab.configure(
+                            CreativeModeTab.builder()
+                                    .title(Component.translatable("itemGroup.mymod.b"))
+                                    .icon(MyItems.SOME_ITEM::asStack),
+                            ALBannerStyle.colors(6, 0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
+                            MyItemGroups::populate, TS_BLOCKS
+                    ).build()
+    ).register();
+
+    // 方式三：自定义贴图 + 格数
+    // ALBannerStyle.texture(3, "mymod:textures/gui/creative/banner");
+}
+```
+
+要点：
+
+- **物品列数联动**：横幅 N 格时，该分区内的物品会按**每行左对齐 N 个**排布（行尾补空保持创造栏滚动对齐）；N = 9 即原版整行 9 列布局，与默认外观一致。
+- 同一标签页内的所有分区共用该标签页的样式与格数（暂不支持一个标签页里分区各异；如有需要可扩展为分区级样式）。
+- 贴图模式标题文字固定白色带阴影（保证任何贴图上可读）；纯色模式用样式里的文字色。
+- 自定义贴图建议为 18 的倍数宽、18 高；非匹配尺寸会整张拉伸到横幅宽度。
+
 ### 3. 消费方 build.gradle 接入
 
 ```gradle
@@ -156,5 +210,5 @@ side = "BOTH"
 
 ## 备注
 
-- 分区标题渲染已内置并随 `AbyssLibClient` 自动注册（见上文第 2 节）；无需客户端 hook。
+- 分区标题横幅渲染已内置并随 `AbyssLibClient` 自动注册，无需客户端 hook；样式（纯色/预设/自定义贴图）与格数见 **2.1 横幅样式**。
 - 数据生成注意：多模组并存时 Registrate 的 unassociated BLOCK_TAGS 生成器存在并发竞态（ConcurrentModificationException），世界生成标签建议用自定义 DataProvider 在 addTags 阶段直填（参考 PoopSky-FilthDomain 的 FDTagsProvider 做法）。

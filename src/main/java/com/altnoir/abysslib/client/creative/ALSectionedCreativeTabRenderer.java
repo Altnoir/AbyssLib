@@ -76,15 +76,17 @@ public final class ALSectionedCreativeTabRenderer {
     }
 
     private static void drawBanner(GuiGraphics graphics, int top, ALBannerStyle style) {
+        int width = style.pixelLength();
         if (style instanceof ALBannerStyle.Colors colors) {
-            graphics.fill(GRID_LEFT, top, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, colors.background());
+            graphics.fill(GRID_LEFT, top, GRID_LEFT + width, top + ROW_HEIGHT, colors.background());
             graphics.fill(GRID_LEFT, top, GRID_LEFT + 1, top + ROW_HEIGHT, colors.borderMuted());
-            graphics.fill(GRID_LEFT + GRID_WIDTH - 1, top, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, colors.borderMuted());
-            graphics.fill(GRID_LEFT + 1, top, GRID_LEFT + GRID_WIDTH, top + 1, colors.borderPrimary());
-            graphics.fill(GRID_LEFT + 1, top + ROW_HEIGHT - 1, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, colors.borderMuted());
+            graphics.fill(GRID_LEFT + width - 1, top, GRID_LEFT + width, top + ROW_HEIGHT, colors.borderMuted());
+            graphics.fill(GRID_LEFT + 1, top, GRID_LEFT + width, top + 1, colors.borderPrimary());
+            graphics.fill(GRID_LEFT + 1, top + ROW_HEIGHT - 1, GRID_LEFT + width, top + ROW_HEIGHT, colors.borderMuted());
         } else if (style instanceof ALBannerStyle.Texture texture) {
-            // 整张贴图拉伸铺满横幅行（建议 PNG 尺寸与横幅一致：162×18）
-            graphics.blit(texture.texture(), GRID_LEFT, top, GRID_WIDTH, ROW_HEIGHT,
+            // 整张贴图映射到 units×18 宽的横幅行：内置 banner_N 贴图尺寸与格数精确匹配（1:1），
+            // 自定义贴图则整张拉伸到该宽度。
+            graphics.blit(texture.texture(), GRID_LEFT, top, width, ROW_HEIGHT,
                     0.0F, 0.0F, GRID_WIDTH, ROW_HEIGHT, GRID_WIDTH, ROW_HEIGHT);
         }
     }
