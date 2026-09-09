@@ -16,9 +16,9 @@ import java.util.function.Consumer;
 /**
  * 分区式创造栏（CreativeModeTab 子类）。
  * 通过 {@link #configure} 把若干 {@link ALCreativeTabSection} 挂到标签页上：
- * 构建时按分区顺序输出条目，分区之间插入空行（横幅行），同一物品去重。
- * 每个分区的<b>横幅格数同时决定其物品列数</b>：横幅 N 格时物品每行左对齐放 N 个
- * （行尾补空以保持创造栏滚动对齐）；N=9（默认）即原版整行 9 列布局。
+ * 构建时按分区顺序输出条目，同一物品去重。
+ * 横幅 N 格 = 分区标题行行首 N 格被横幅占据，物品从横幅右侧同行接续排布
+ * （N=9 时横幅独占一整行、物品从下一行开始，即原版式布局）。
  */
 public final class ALSectionedCreativeModeTab extends CreativeModeTab {
     private static final int COLUMNS = 9;
@@ -79,19 +79,24 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
                 continue;
             }
 
-            // 该分区的物品列数跟随横幅格数：横幅 N 格 → 每行左对齐放 N 个物品，
-            // 行尾补齐到 9 格（保持创造栏滚动行对齐）。N=9 时与整行铺满一致。
+            // 横幅 N 格 = 该行行首 N 格为空（渲染器在此画横幅），物品从第 N+1 格同行接续；
+            // N=9 时横幅独占一整行、物品从下一行开始（与原版/默认行为一致）。
             int columns = bannerStyle().units();
 
             int headingRow = newDisplayItems.size() / COLUMNS;
             newLayouts.add(new SectionLayout(section.title(), headingRow));
-            addEmptyRow(newDisplayItems); // 空行：由客户端渲染器在该行绘制横幅
-            newSearchItems.addAll(enabledItems);
-            for (int start = 0; start < enabledItems.size(); start += columns) {
-                int end = Math.min(start + columns, enabledItems.size());
-                newDisplayItems.addAll(enabledItems.subList(start, end));
-                padToCompleteRow(newDisplayItems);
+            if (columns < COLUMNS) {
+                // 横幅只占行首 N 格：留出 N 个空位，物品接着往后排
+                for (int i = 0; i < columns; i++) {
+                    newDisplayItems.add(ItemStack.EMPTY);
+                }
+            } else {
+                // 整行横幅（独占一行）
+                addEmptyRow(newDisplayItems);
             }
+            newSearchItems.addAll(enabledItems);
+            newDisplayItems.addAll(enabledItems);
+            padToCompleteRow(newDisplayItems);
         }
 
         displayItems = List.copyOf(newDisplayItems);

@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
  * <p>
  * <b>长度以"格数"为单位</b>（每格 = 18px，即创造栏一格宽）：
  * 允许 1 ~ 9，写 9 即整行 162px。
- * 格数同时决定该分区<b>物品的每行列数</b>：横幅 N 格 → 物品每行左对齐放 N 个。
+ * 横幅 N 格时，该分区标题行行首 N 格被横幅占据，物品从右侧第 N+1 格同行接续排布。
  * <p>
  * 贴图统一走 {@link #texture(int)} / {@link #texture(int, String)}：
  * 只给格数 = 使用 AbyssLib 内置预设贴图（{@code banner_1.png ~ banner_9.png}，
