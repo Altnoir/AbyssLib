@@ -6,18 +6,31 @@ Altnoir 系列模组的公共前置库（NeoForge 1.21.1 / Java 21）。
 - 包名：`com.altnoir.abysslib`
 - 类前缀：`AL`（如 `ALRegistrate` / `ALCreativeTabSection`）
 - 作者：Altnoir
-- 功能：**jarJar 内置 Registrate 与 Simple Bedrock Model（简单基岩模型）**，提供通用 `ALRegistrate` 与分区式创造栏
+- 功能：**jarJar 内置 Registrate**，提供通用 `ALRegistrate` 与分区式创造栏（Simple Bedrock Model 不再由本库内置）
+
+## 分支说明
+
+本库按 MC 线分开维护（git 各占一个分支/工作树）：
+
+| 分支/目录 | 目标 | 关键差异 |
+|---|---|---|
+| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | Registrate `MC1.21-1.3.0+67`（devos）；分区栏=populator + ALBannerStyle（纯色/格数贴图，`AbyssLibClient` 事件自动渲染） |
+| `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | Registrate `MC26.1-1.5.7`（gegy.dev）；分区栏=MIA-26.1 模型（`ALCreativeTabSection` 按 `Identifier` 收集 + 每分区 bannerSprite + mixin 渲染） |
+
+两线的共同策略：**只内置 Registrate；Simple Bedrock Model / mae 不由本库内置**，需要 SBM 的模组自行声明。
 
 ## 内置库（jarJar，唯一提供者）
 
 | 库 | 版本 | 说明 |
 |---|---|---|
 | Registrate | `MC1.21-1.3.0+67` | 注册框架 |
-| Simple Bedrock Model | `2.5.1` | 简单基岩模型 |
 
-**铁律**：这两者只由 AbyssLib 在运行时提供。依赖本库的模组一律：
-- 无需自行 `compileOnly`/`jarJar` Registrate / sbm——AbyssLib 以 `api` 依赖把两者送进模组的编译 classpath，以 jarJar 提供运行时唯一副本（mods.toml 声明 required 依赖 `abysslib`）
-- 绝不各自 jarJar，否则运行时出现多份类、跨模组传 `ItemEntry`/`BlockEntry` 会类型分裂
+**铁律（Registrate）**：只由 AbyssLib 在运行时提供。依赖本库的模组一律：
+- 无需自行 `compileOnly`/`jarJar` Registrate——AbyssLib 以 `api` 依赖把它送进模组的编译 classpath，以 jarJar 提供运行时唯一副本（mods.toml 声明 required 依赖 `abysslib`）
+- 绝不各自 jarJar Registrate，否则运行时出现多份类、跨模组传 `ItemEntry`/`BlockEntry` 会类型分裂
+
+> **Simple Bedrock Model / mae 不再由本库内置**（与 26.1 线策略一致）。需要 SBM 的模组
+> （如 PoopSkyMod）自行声明（jitpack 坐标 + 各自 jarJar / compileOnly mae），本库不保证其单副本。
 
 ## 构建 / 发布
 
@@ -202,21 +215,23 @@ public final class MyItemGroups {
 repositories {
     maven { url = file("../AbyssLib/repo") }      // 本地发布仓库（先 ./gradlew publish）
     maven { url = "https://mvn.devos.one/snapshots" } // Registrate
-    maven { url = "https://jitpack.io" }              // Simple Bedrock Model（如代码直接用其 API）
+    // 需要 SBM 的模组请自行再加 jitpack（SBM 不再由 AbyssLib 提供）
+    // maven { url = "https://jitpack.io" }
 }
 
 dependencies {
-    // AbyssLib 以 api + jarJar 统一提供 Registrate / SBM：
-    //   - 编译期：api 依赖把两者传入本模组的 compile classpath（无需自行 compileOnly）；
+    // AbyssLib 以 api + jarJar 提供 Registrate：
+    //   - 编译期：api 依赖把它传入本模组的 compile classpath（无需自行 compileOnly）；
     //   - 运行时：jarJar 内嵌唯一副本（生产环境安装 abysslib 即可）。
-    // 禁止本模组再自行 jarJar 它们。
+    // 禁止本模组再自行 jarJar Registrate。
     implementation("com.altnoir.abysslib:AbyssLib:1.2.0")
+    // 需要 SBM / mae 的模组自行声明（jitpack 坐标 + jarJar / compileOnly），不再由本库提供。
 }
 ```
 
-> 上面 repositories 里的 Registrate（mvn.devos.one）与 SBM（jitpack）仍需保留：
-> 它们用于解析 AbyssLib `api` 依赖传递出的 Registrate / SBM 构件（编译与 dev 运行需要）。
-> 若出于隔离需要把 AbyssLib 设成 `{ transitive = false }`，需自行补 Registrate / SBM 的 `runtimeOnly`。
+> 上面 repositories 里的 Registrate（mvn.devos.one）仍需保留：它用于解析 AbyssLib `api`
+> 依赖传递出的 Registrate 构件（编译与 dev 运行需要）。
+> 若出于隔离需要把 AbyssLib 设成 `{ transitive = false }`，需自行补 Registrate 的 `runtimeOnly`。
 
 mods.toml 声明：
 
@@ -231,5 +246,5 @@ side = "BOTH"
 
 ## 备注
 
-- 分区标题横幅渲染已内置并随 `AbyssLibClient` 自动注册，无需客户端 hook；样式（纯色/预设/自定义贴图）与格数见 **2.1 横幅样式**。
+- （1.21.1 线）分区标题横幅渲染内置并随 `AbyssLibClient` 自动注册，无需客户端 hook；样式（纯色/预设/自定义贴图）与格数见 **2.1 横幅样式**。
 - 数据生成注意：多模组并存时 Registrate 的 unassociated BLOCK_TAGS 生成器存在并发竞态（ConcurrentModificationException），世界生成标签建议用自定义 DataProvider 在 addTags 阶段直填（参考 PoopSky-FilthDomain 的 FDTagsProvider 做法）。

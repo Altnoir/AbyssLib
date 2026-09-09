@@ -17,7 +17,6 @@ group = mod_group_id
 repositories {
     mavenLocal()
     maven { url = "https://mvn.devos.one/snapshots" } // Registrate
-    maven { url = "https://jitpack.io" } // Simple Bedrock Model（com.github.mcmodderanchor）
 }
 
 base {
@@ -77,22 +76,8 @@ dependencies {
     // api：把 Registrate 暴露给消费方编译期（module metadata / POM 会以 compile 作用域传递），
     // 消费方无需再自行 compileOnly Registrate；运行仍只由本库 jarJar 提供。
     api "com.tterrag.registrate:Registrate:${registrate_version}"
-    // 内置 Simple Bedrock Model（简单基岩模型），同样只由本库提供
-    implementation jarJar("com.github.mcmodderanchor:simplebedrockmodel:${sbm_version}-neoforge-mc${minecraft_version}") {
-        version {
-            prefer "${sbm_version}"
-        }
-    }
-    // api：同上，编译期对消费方可见（用其 API 的模组无需自行 compileOnly）
-    api("com.github.mcmodderanchor:simplebedrockmodel:${sbm_version}-neoforge-mc${minecraft_version}") {
-        version {
-            prefer "${sbm_version}"
-        }
-    }
-    // mae：SBM 的动画运行库（运行时由 SBM 的 jar-in-jar 内嵌提供，见 SBM 构件 META-INF/jarjar/）。
-    // 这里只以 compileOnlyApi 暴露给消费方编译期（如直接 import com.maydaymemory.mae.* 的模组），
-    // 不打包、不进运行时，避免运行时出现第二份 mae。
-    compileOnlyApi "com.maydaymemory:mae:1.1.4"
+    // 说明：Simple Bedrock Model / mae 不再由本库内置或暴露；
+    // 需要 SBM 的模组自行以 jitpack 坐标 + 本地 jarJar 提供（与 26.1 线策略一致）。
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
