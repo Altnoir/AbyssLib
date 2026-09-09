@@ -1,62 +1,65 @@
-# AbyssLib
+# AbyssLib (26.1.2)
 
-Altnoir 系列模组的公共前置库（NeoForge 1.21.1 / Java 21）。
+Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / moddev 2.0.143）。
 
 - 命名空间（mod id）：`abysslib`
 - 包名：`com.altnoir.abysslib`
 - 类前缀：`AL`（如 `ALRegistrate` / `ALCreativeTabSection`）
 - 作者：Altnoir
-- 功能：**jarJar 内置 Registrate 与 Simple Bedrock Model（简单基岩模型）**，提供通用 `ALRegistrate` 与分区式创造栏
+- 分支：`26.1.2-NeoForge`（独立 git worktree：`D:\Minecraft\ModDev\AbyssLib-26.1.2`）
+- 功能：**jarJar 内置 Registrate（`MC26.1-1.5.7`）**，提供 `ALRegistrate` 与**照 MIA-26.1 移植的分区式创造栏**（按注册名分区 + 每分区可选 sprite 横幅 + mixin 渲染）
 
-## 内置库（jarJar，唯一提供者）
+> 与 1.21.1 线（`1.21.1-NeoForge`）的差异：API 不通用。
+> - 26.1 使用 `Identifier`（无 `ResourceLocation`）、`GuiGraphicsExtractor`/`RenderPipelines` 渲染管线；
+> - 分区栏为 MIA-26.1 模型（分区持 `ResourceKey<CreativeModeTab>` + `Identifier` + 可选 bannerSprite），不是 1.21.1 的 populator + ALBannerStyle 模型；
+> - 访问创造栏私有成员用 **mixin @Shadow**（不用 AT）。
 
-| 库 | 版本 | 说明 |
-|---|---|---|
-| Registrate | `MC1.21-1.3.0+67` | 注册框架 |
-| Simple Bedrock Model | `2.5.1` | 简单基岩模型 |
+## 内置库（jarJar）
 
-**铁律**：这两者只由 AbyssLib 在运行时提供。依赖本库的模组一律：
-- 无需自行 `compileOnly`/`jarJar` Registrate / sbm——AbyssLib 以 `api` 依赖把两者送进模组的编译 classpath，以 jarJar 提供运行时唯一副本（mods.toml 声明 required 依赖 `abysslib`）
-- 绝不各自 jarJar，否则运行时出现多份类、跨模组传 `ItemEntry`/`BlockEntry` 会类型分裂
+| 库 | 版本 | 来源 | 说明 |
+|---|---|---|---|
+| Registrate | `MC26.1-1.5.7` | `https://maven.gegy.dev/releases` | 注册框架 |
+
+- Registrate 以 `implementation jarJar(...)` 内嵌（运行时唯一副本）+ `api` 暴露编译期（消费方无需自行声明）。
+- **Simple Bedrock Model / mae 不由本库内置**（26.1 无公开 SBM maven，本地文件依赖也无法进发布元数据）；需要 SBM 的模组自行以本地 libs/jarJar 提供。
 
 ## 构建 / 发布
 
 ```bash
 ./gradlew build          # 产物在 build/libs/
-./gradlew publish        # 发布到 repo/（本地仓库，供其他模组引用）
+./gradlew publish        # 发布到 repo/（本地仓库，供 26.1 线消费方引用）
 ```
 
-> 注意：maven-publish 的 artifactId 取**项目名** `AbyssLib`，坐标为 `com.altnoir.abysslib:AbyssLib:<版本>`。
+> maven-publish 的 artifactId 取项目名 `AbyssLib`，坐标为 `com.altnoir.abysslib:AbyssLib:<版本>`。
 
-## 提供给模组的功能
+## 通用工具（AbyssLib 静态方法）
 
-### 0. 通用 ResourceLocation / 注册表路径工具
-
-`AbyssLib` 入口类自带一组静态工具，消费方无需再各自复制这些方法：
+`AbyssLib` 入口类自带一组 `Identifier`/注册表路径工具（26.1 返回 `net.minecraft.resources.Identifier`）：
 
 | 方法 | 说明 |
 |---|---|
-| `AbyssLib.loc(path)` | `abysslib:<path>`（只用于 abysslib 自己的资源；消费方请用 `modloc(自身MOD_ID, path)`） |
+| `AbyssLib.loc(path)` | `abysslib:<path>`（仅本库资源；消费方用 `modloc(自身MOD_ID, path)`） |
 | `AbyssLib.modloc(namespace, path)` | 任意 `namespace:path` |
 | `AbyssLib.mcloc(path)` | 原版 `minecraft:path` |
-| `AbyssLib.parse(str)` / `AbyssLib.tryParse(str)` | 解析 `"ns:path"`（严格抛错 / 宽松返回 null） |
-| `AbyssLib.getItemPath(item)` / `getBlockPath(block)` / `getBlockKey(block)` | 物品/方块的注册名 path 或 ResourceLocation |
+| `AbyssLib.parse(str)` / `tryParse(str)` | 严格 / 宽松解析 |
+| `getItemPath(item)` / `getBlockPath(block)` / `getBlockKey(block)` | 物品/方块的注册名 |
 
-典型用法：各模组入口的 `loc` 委托即可（如 PoopSky/FilthDomain）：
+## ALRegistrate（通用 Registrate 实例，MIA-26.1 归类模型）
 
-```java
-public static ResourceLocation loc(String path) {
-    return AbyssLib.modloc(MOD_ID, path); // MOD_ID = 自己的 mod id
-}
-```
-
-### 1. ALRegistrate（通用 Registrate 实例）
-
-模组入口持有一个绑定自己 mod id 的实例（注册名全部是自己的命名空间）：
+入口类持有绑定自己 mod id 的实例，并**自行挂事件总线**（26.1 版 `create()` 不再自动挂载）：
 
 ```java
+@Mod(MyMod.MOD_ID)
 public class MyMod {
-    private static final ALRegistrate REGISTRATE = ALRegistrate.create(MyMod.MOD_ID);
+    public static final String MOD_ID = "mymod";
+    private static final ALRegistrate REGISTRATE = ALRegistrate.create(MOD_ID);
+
+    public MyMod(IEventBus modEventBus) {
+        REGISTRATE.registerEventListeners(modEventBus);   // 手动挂载（重要）
+        MyItems.register();
+        MyBlocks.register();
+        MyItemGroups.register();
+    }
 
     public static ALRegistrate registrate() {
         return REGISTRATE;
@@ -64,159 +67,73 @@ public class MyMod {
 }
 ```
 
-### 2. 分区式创造栏（ALCreativeTabSection + ALSectionedCreativeModeTab）
+行为要点（照 MiaRegistrate）：
+- 先 `REGISTRATE.defaultCreativeSection(section)` 设定默认分区，之后 `REGISTRATE.item(...)` 注册的物品会自动 `.tab(section.tab())` 并把注册名 `add` 进该分区；`block(...)` 本身不自动归类（其方块物品走 item 链触发同一逻辑）。
+- `ALItemBuilder.ignore()` / `ALBlockBuilder.ignore()` 把条目从默认创造栏剔除。
+- `object("name").creativeTab(tab -> ALSectionedCreativeModeTab.configure(...)).register()` 或 `creativeTab(...)` 便捷方法注册自定义标签页。
 
-建自己的分区与标签页：
+## 分区式创造栏（ALCreativeTabSection + ALSectionedCreativeModeTab）
 
-> 分区标题横幅**开箱即用**：客户端渲染随 `AbyssLibClient` 自动注册，消费方无需任何客户端代码。
-> 横幅样式（纯色 / 预设贴图 / 自定义贴图）、"格数"、物品列数联动等详见下方 **2.1 横幅样式**。
+分区以**注册名**收集（照 MIA-26.1），展示时经注册表惰性解析：
 
 ```java
 public final class MyItemGroups {
     private static final ALRegistrate REGISTRATE = MyMod.registrate();
 
-    public static final ALCreativeTabSection TS_ITEMS = section("itemGroup.mymod.section.items");
-    public static final ALCreativeTabSection TS_BLOCKS = section("itemGroup.mymod.section.blocks");
+    public static final ResourceKey<CreativeModeTab> TAB_KEY =
+            ResourceKey.create(Registries.CREATIVE_MODE_TAB, AbyssLib.modloc(MyMod.MOD_ID, "main"));
 
-    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB = REGISTRATE.generic("main",
-            Registries.CREATIVE_MODE_TAB, () ->
-                    ALSectionedCreativeModeTab.configure(
-                            CreativeModeTab.builder()
-                                    .title(Component.translatable("itemGroup.mymod"))
-                                    .icon(MyItems.SOME_ITEM::asStack),
-                            MyItemGroups::populate,
-                            TS_ITEMS, TS_BLOCKS
-                    ).build()
-    ).register();
+    // (tab, id, title[, bannerSprite]) —— bannerSprite 指向
+    // assets/<ns>/textures/gui/sprites/<path>.png（162x18）；省略则画默认绿色横幅
+    public static final ALCreativeTabSection TS_ITEMS = new ALCreativeTabSection(
+            TAB_KEY, AbyssLib.modloc(MyMod.MOD_ID, "main/items"),
+            Component.translatable("itemGroup.mymod.section.items"));
+    public static final ALCreativeTabSection TS_BLOCKS = new ALCreativeTabSection(
+            TAB_KEY, AbyssLib.modloc(MyMod.MOD_ID, "main/blocks"),
+            Component.translatable("itemGroup.mymod.section.blocks"));
 
-    private static void populate(CreativeModeTab.ItemDisplayParameters parameters) {
-        for (Item item : MyItems.getAllItems()) {
-            TS_ITEMS.add(item);
-        }
-    }
-
-    private static ALCreativeTabSection section(String key) {
-        return new ALCreativeTabSection(key);
-    }
+    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB = REGISTRATE
+            .object("main")
+            .creativeTab(tab -> ALSectionedCreativeModeTab.configure(
+                    tab.icon(MyItems.SOME_ITEM::asStack),
+                    TS_ITEMS, TS_BLOCKS))
+            .register();
 
     public static void register() {
     }
 }
 ```
 
-注册内容走 `ALRegistrate` 的 `block()` / `item()`（自动模型/语言/战利品），并用 `defaultCreativeSection(...)` 自动归类：
+注册归类（在 init 类 static 初始化最前调用一次，再注册物品）：
 
 ```java
 public final class MyItems {
-    public static final ItemEntry<Item> SOME_ITEM = REGISTRATE.item("some_item", Item::new)
-            .register();
+    static {
+        MyMod.registrate().defaultCreativeSection(MyItemGroups.TS_ITEMS);
+    }
 
-    // 链式 API：排除默认分区 / 额外加入某分区（block()/item() 均支持）
-    public static final ItemEntry<Item> NO_TAB_ITEM = REGISTRATE.item("no_tab_item", Item::new)
-            .ignore()
-            .register();
-    public static final ItemEntry<Item> EXTRA_TAB_ITEM = REGISTRATE.item("extra_tab_item", Item::new)
-            .addTabSection(MyItemGroups.TS_BLOCKS)
-            .register();
+    public static final ItemEntry<Item> SOME_ITEM = MyMod.registrate().item("some_item", Item::new).register();
 }
 ```
 
-说明：`defaultCreativeSection(TS)` 设定后，后续注册的方块/物品自动归入 `TS`；
-`ignore()` 把它排除（链式任意位置调用均生效）；`addTabSection(TS2)` 让它额外出现在 `TS2`。
-**注意**：分区会在每次 `buildContents` 清空后由标签页的 populate 重新填充，因此依赖
-"注册期自动归类"的条目必须能被 populate 覆盖到（如遍历 `getAllItems()` 重新 add），
-或直接使用上述链式 API 手动归类——这与纯 populate 驱动的写法等价。
+客户端标题渲染**开箱即用、无需任何客户端代码**：`abysslib` 自带的两个 client mixin
+（`CreativeModeInventoryScreen.extractBackground` TAIL 注入 + `CustomCreativeSlot.isHighlightable` 屏蔽标题槽）
+会自动处理任何 `ALSectionedCreativeModeTab`。
 
-### 2.1 横幅样式（ALBannerStyle）
-
-分区横幅是每个分区标题上方的那一条色带/贴图。**样式按标签页各自独立**，建标签页时作为
-`ALSectionedCreativeModeTab.configure(...)` 的第二个参数传入；不传则使用 AbyssLib 默认样式
-`ALBannerStyle.DEFAULT`（绿色系纯色，整行）。样式分**纯色**与**贴图**两类，统一用
-"格数"（1~9）描述长度：每格 = 18px（创造栏一格宽），**9 = 整行 162px**。
-
-| API | 说明 |
-|---|---|
-| `ALBannerStyle.colors(背景, 暗边框, 亮边框, 文字)` | 纯色，9 格整行（颜色为 ARGB，如 `0xFF123456`） |
-| `ALBannerStyle.colors(格数, 背景, 暗边框, 亮边框, 文字)` | 纯色 + 指定格数 |
-| `ALBannerStyle.texture(格数)` | 内置预设贴图（见下表） |
-| `ALBannerStyle.texture(格数, "路径")` | 自定义贴图（支持 `"ns:path"` 或 ResourceLocation），拉伸到指定格数 |
-| `样式.withUnits(格数)` | 在已有样式上改格数（纯色/贴图都有） |
-
-**格数与像素宽**：`1→18`、`2→36`、`3→54`、`4→72`、`5→90`、`6→108`、`7→126`、
-`8→144`、`9→162`；越界抛 `IllegalArgumentException`。
-
-**内置预设贴图**：位于本库 jar 的 `assets/abysslib/textures/gui/section/banner_1~9.png`，
-N 号贴图宽 N×18、高 18，与格数精确对应，`texture(N)` 自动引入、像素级 1:1：
-
-| `texture(n)` | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
-|---|---|---|---|---|---|---|---|---|---|
-| 对应像素宽 | 18 | 36 | 54 | 72 | 90 | 108 | 126 | 144 | 162 |
-
-完整示例：
-
-```java
-public final class MyItemGroups {
-    // …TS_ITEMS / TS_BLOCKS 等分区同上…
-
-    // 方式一：内置预设贴图，只写格数（texture(4) → banner_4.png，72px）
-    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_A = REGISTRATE.generic("tab_a",
-            Registries.CREATIVE_MODE_TAB, () ->
-                    ALSectionedCreativeModeTab.configure(
-                            CreativeModeTab.builder()
-                                    .title(Component.translatable("itemGroup.mymod.a"))
-                                    .icon(MyItems.SOME_ITEM::asStack),
-                            ALBannerStyle.texture(4),
-                            MyItemGroups::populate, TS_ITEMS
-                    ).build()
-    ).register();
-
-    // 方式二：纯色 + 自定义格数（颜色模式同样支持长度）
-    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_B = REGISTRATE.generic("tab_b",
-            Registries.CREATIVE_MODE_TAB, () ->
-                    ALSectionedCreativeModeTab.configure(
-                            CreativeModeTab.builder()
-                                    .title(Component.translatable("itemGroup.mymod.b"))
-                                    .icon(MyItems.SOME_ITEM::asStack),
-                            ALBannerStyle.colors(6, 0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
-                            MyItemGroups::populate, TS_BLOCKS
-                    ).build()
-    ).register();
-
-    // 方式三：自定义贴图 + 格数
-    // ALBannerStyle.texture(3, "mymod:textures/gui/creative/banner");
-}
-```
-
-要点：
-
-- **横幅与物品同行接续**：横幅 N 格时，该分区标题行行首 N 格被横幅占据，物品从右侧
-  第 N+1 格开始同行排布（满 9 格换行）；N = 9 即横幅独占一整行、物品从下一行开始，
-  与默认外观一致。
-- 同一标签页内的所有分区共用该标签页的样式与格数（暂不支持一个标签页里分区各异；如有需要可扩展为分区级样式）。
-- 贴图模式标题文字固定白色带阴影（保证任何贴图上可读）；纯色模式用样式里的文字色。
-- 自定义贴图建议为 18 的倍数宽、18 高；非匹配尺寸会整张拉伸到横幅宽度。
-
-### 3. 消费方 build.gradle 接入
+## 消费方 build.gradle 接入
 
 ```gradle
 repositories {
-    maven { url = file("../AbyssLib/repo") }      // 本地发布仓库（先 ./gradlew publish）
-    maven { url = "https://mvn.devos.one/snapshots" } // Registrate
-    maven { url = "https://jitpack.io" }              // Simple Bedrock Model（如代码直接用其 API）
+    maven { url = file("../AbyssLib-26.1.2/repo") }   // 本地发布仓库（先 ./gradlew publish）
+    maven { url = "https://maven.gegy.dev/releases" } // Registrate（api 传递解析用）
 }
 
 dependencies {
-    // AbyssLib 以 api + jarJar 统一提供 Registrate / SBM：
-    //   - 编译期：api 依赖把两者传入本模组的 compile classpath（无需自行 compileOnly）；
-    //   - 运行时：jarJar 内嵌唯一副本（生产环境安装 abysslib 即可）。
-    // 禁止本模组再自行 jarJar 它们。
-    implementation("com.altnoir.abysslib:AbyssLib:1.2.0")
+    // Registrate 编译期由 AbyssLib api 传递；运行时由它 jarJar 唯一提供。
+    implementation("com.altnoir.abysslib:AbyssLib:1.0.0")
+    // 需要 SBM 的模组自行声明（本地 libs + jarJar / compileOnly），本库不再提供。
 }
 ```
-
-> 上面 repositories 里的 Registrate（mvn.devos.one）与 SBM（jitpack）仍需保留：
-> 它们用于解析 AbyssLib `api` 依赖传递出的 Registrate / SBM 构件（编译与 dev 运行需要）。
-> 若出于隔离需要把 AbyssLib 设成 `{ transitive = false }`，需自行补 Registrate / SBM 的 `runtimeOnly`。
 
 mods.toml 声明：
 
@@ -231,5 +148,6 @@ side = "BOTH"
 
 ## 备注
 
-- 分区标题横幅渲染已内置并随 `AbyssLibClient` 自动注册，无需客户端 hook；样式（纯色/预设/自定义贴图）与格数见 **2.1 横幅样式**。
-- 数据生成注意：多模组并存时 Registrate 的 unassociated BLOCK_TAGS 生成器存在并发竞态（ConcurrentModificationException），世界生成标签建议用自定义 DataProvider 在 addTags 阶段直填（参考 PoopSky-FilthDomain 的 FDTagsProvider 做法）。
+- 渲染/屏蔽靠 `abysslib.mixins.json`（`compatibilityLevel JAVA_25`，两个 mixin 均在 `client` 段），无需 AT。
+- 分区每占用一整个标题行（displayItems 内为真实 EMPTY 占位）；滚动行号公式与 26.1 `ItemPickerMenu` 一致。
+- 数据生成注意：多模组并存时 Registrate 的 unassociated BLOCK_TAGS 生成器存在并发竞态，世界生成标签建议用自定义 DataProvider 在 addTags 阶段直填。
