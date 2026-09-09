@@ -1,5 +1,6 @@
 package com.altnoir.abysslib.creative;
 
+import com.altnoir.abysslib.AbyssLib;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -90,8 +91,7 @@ public sealed interface ALBannerStyle permits ALBannerStyle.Colors, ALBannerStyl
      */
     static Texture texture(int units) {
         int u = validateUnits(units);
-        return new Texture(u, ResourceLocation.fromNamespaceAndPath("abysslib",
-                "textures/gui/section/banner_" + u));
+        return new Texture(u, AbyssLib.loc("textures/gui/section/banner_" + u));
     }
 
     /** 自定义贴图并指定格数：路径写 "命名空间:路径" 或 ResourceLocation。 */
@@ -109,7 +109,7 @@ public sealed interface ALBannerStyle permits ALBannerStyle.Colors, ALBannerStyl
         if (colon <= 0 || colon == texturePath.length() - 1) {
             throw new IllegalArgumentException("Not a valid resource location: " + texturePath);
         }
-        return ResourceLocation.fromNamespaceAndPath(texturePath.substring(0, colon), texturePath.substring(colon + 1));
+        return AbyssLib.modloc(texturePath.substring(0, colon), texturePath.substring(colon + 1));
     }
 
     /** 纯色样式：颜色均为 ARGB（0xFF 开头即不透明）。 */

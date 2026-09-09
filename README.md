@@ -16,8 +16,7 @@ Altnoir 系列模组的公共前置库（NeoForge 1.21.1 / Java 21）。
 | Simple Bedrock Model | `2.5.1` | 简单基岩模型 |
 
 **铁律**：这两者只由 AbyssLib 在运行时提供。依赖本库的模组一律：
-- `compileOnly` Registrate / sbm（编译期可见）
-- 运行时通过 AbyssLib 的 jarJar 拷贝获得（mods.toml 声明 required 依赖 `abysslib`）
+- 无需自行 `compileOnly`/`jarJar` Registrate / sbm——AbyssLib 以 `api` 依赖把两者送进模组的编译 classpath，以 jarJar 提供运行时唯一副本（mods.toml 声明 required 依赖 `abysslib`）
 - 绝不各自 jarJar，否则运行时出现多份类、跨模组传 `ItemEntry`/`BlockEntry` 会类型分裂
 
 ## 构建 / 发布
@@ -30,6 +29,26 @@ Altnoir 系列模组的公共前置库（NeoForge 1.21.1 / Java 21）。
 > 注意：maven-publish 的 artifactId 取**项目名** `AbyssLib`，坐标为 `com.altnoir.abysslib:AbyssLib:<版本>`。
 
 ## 提供给模组的功能
+
+### 0. 通用 ResourceLocation / 注册表路径工具
+
+`AbyssLib` 入口类自带一组静态工具，消费方无需再各自复制这些方法：
+
+| 方法 | 说明 |
+|---|---|
+| `AbyssLib.loc(path)` | `abysslib:<path>`（只用于 abysslib 自己的资源；消费方请用 `modloc(自身MOD_ID, path)`） |
+| `AbyssLib.modloc(namespace, path)` | 任意 `namespace:path` |
+| `AbyssLib.mcloc(path)` | 原版 `minecraft:path` |
+| `AbyssLib.parse(str)` / `AbyssLib.tryParse(str)` | 解析 `"ns:path"`（严格抛错 / 宽松返回 null） |
+| `AbyssLib.getItemPath(item)` / `getBlockPath(block)` / `getBlockKey(block)` | 物品/方块的注册名 path 或 ResourceLocation |
+
+典型用法：各模组入口的 `loc` 委托即可（如 PoopSky/FilthDomain）：
+
+```java
+public static ResourceLocation loc(String path) {
+    return AbyssLib.modloc(MOD_ID, path); // MOD_ID = 自己的 mod id
+}
+```
 
 ### 1. ALRegistrate（通用 Registrate 实例）
 
@@ -187,17 +206,17 @@ repositories {
 }
 
 dependencies {
-    // 保留 POM 传递：AbyssLib 的 runtime 依赖（Registrate / SBM）会进入本模组 dev 运行 classpath，
-    // 而生产环境这两者只由 AbyssLib 的 jarJar 唯一提供（本 jar 不会内嵌它们）。
+    // AbyssLib 以 api + jarJar 统一提供 Registrate / SBM：
+    //   - 编译期：api 依赖把两者传入本模组的 compile classpath（无需自行 compileOnly）；
+    //   - 运行时：jarJar 内嵌唯一副本（生产环境安装 abysslib 即可）。
+    // 禁止本模组再自行 jarJar 它们。
     implementation("com.altnoir.abysslib:AbyssLib:1.2.0")
-    // 编译期 API（与 AbyssLib 内置版本必须一致，禁止再各自 jarJar）：
-    compileOnly "com.tterrag.registrate:Registrate:MC1.21-1.3.0+67"
-    compileOnly "com.github.mcmodderanchor:simplebedrockmodel:2.5.1-neoforge-mc1.21.1"
 }
 ```
 
-> 若出于隔离需要坚持 `{ transitive = false }`，请自行把 Registrate / SBM 加到
-> dev 运行 classpath（如 `runtimeOnly`），否则 `runClient` 会缺类。
+> 上面 repositories 里的 Registrate（mvn.devos.one）与 SBM（jitpack）仍需保留：
+> 它们用于解析 AbyssLib `api` 依赖传递出的 Registrate / SBM 构件（编译与 dev 运行需要）。
+> 若出于隔离需要把 AbyssLib 设成 `{ transitive = false }`，需自行补 Registrate / SBM 的 `runtimeOnly`。
 
 mods.toml 声明：
 
