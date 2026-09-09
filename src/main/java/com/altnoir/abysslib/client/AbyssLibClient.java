@@ -9,8 +9,8 @@ import net.neoforged.fml.common.Mod;
 /**
  * AbyssLib 客户端入口：装载时自动注册分区创造栏标题渲染
  * （{@link ALSectionedCreativeTabRenderer}），消费方模组无需任何调用即可获得分区标题。
- * 若需定制配色，可在自己的客户端初始化里调用
- * {@code ALSectionedCreativeTabRenderer.setPalette(...)}。
+ * 横幅样式（纯色/贴图）在构建标签页时按页指定，见
+ * {@code ALSectionedCreativeModeTab.configure(..., ALBannerStyle.xxx, ...)}。
  */
 @Mod(value = AbyssLib.MOD_ID, dist = Dist.CLIENT)
 public class AbyssLibClient {

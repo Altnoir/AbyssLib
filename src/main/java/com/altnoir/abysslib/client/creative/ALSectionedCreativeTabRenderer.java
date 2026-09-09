@@ -1,10 +1,12 @@
 package com.altnoir.abysslib.client.creative;
 
+import com.altnoir.abysslib.creative.ALBannerStyle;
 import com.altnoir.abysslib.creative.ALSectionedCreativeModeTab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.client.event.ContainerScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -12,15 +14,17 @@ import net.neoforged.neoforge.common.NeoForge;
  * 分区创造栏标题渲染器（客户端）。
  * <p>
  * 当玩家打开创造栏、当前选中的是 {@link ALSectionedCreativeModeTab} 时，
- * 在其空行分隔行上绘制分区标题横幅（颜色可经 {@link #setPalette} 定制）。
+ * 在其空行分隔行上绘制分区标题横幅。样式由每个标签页自己的
+ * {@link ALBannerStyle} 决定（纯色或贴图，见构建时 {@code configure(...)} 的第二个参数）；
+ * 不指定则用 AbyssLib 默认绿色系 {@link ALBannerStyle#DEFAULT}。
  * 依赖 {@code accesstransformer.cfg} 放宽了对 {@code CreativeModeInventoryScreen}
  * {@code selectedTab}/{@code scrollOffs} 两个字段的访问权限。
  * <p>
- * 用法（模组客户端入口调用一次即可，重复调用幂等）：
+ * 用法：通常无需手动调用——AbyssLib 装载时已通过 {@code AbyssLibClient} 自动注册；
+ * 也可在模组客户端入口显式调用一次（幂等）：
  * <pre>{@code
  * ALSectionedCreativeTabRenderer.register();
  * }</pre>
- * 若在 AbyssLib 自身装载时已通过 {@code AbyssLibClient} 自动注册，则无需再次调用。
  */
 public final class ALSectionedCreativeTabRenderer {
     private static final int VISIBLE_ROWS = 5;
@@ -29,21 +33,12 @@ public final class ALSectionedCreativeTabRenderer {
     private static final int GRID_WIDTH = 162;
     private static final int ROW_HEIGHT = 18;
 
+    /** 贴图模式下叠加的分区标题文字颜色（白色 + 阴影，保证任意贴图上可读）。 */
+    private static final int TEXTURE_TEXT_COLOR = 0xFFFFFFFF;
+
     private static boolean registered;
-    private static Palette palette = Palette.DEFAULT;
 
     private ALSectionedCreativeTabRenderer() {
-    }
-
-    /** 分区横幅配色。 */
-    public record Palette(int background, int borderMuted, int borderPrimary, int text) {
-        /** 默认暖棕色配色（与 Altnoir 模组现有风格一致）。 */
-        public static final Palette DEFAULT = new Palette(
-                0xFF4A3728,
-                0xFF6B5440,
-                0xFF8B7355,
-                0xFFD4C4A8
-        );
     }
 
     /**
@@ -56,15 +51,6 @@ public final class ALSectionedCreativeTabRenderer {
         }
         registered = true;
         NeoForge.EVENT_BUS.addListener(ALSectionedCreativeTabRenderer::onRenderForeground);
-    }
-
-    /** 定制横幅配色（全局生效，后调用者覆盖）。 */
-    public static void setPalette(Palette palette) {
-        ALSectionedCreativeTabRenderer.palette = palette;
-    }
-
-    public static Palette palette() {
-        return palette;
     }
 
     public static void onRenderForeground(ContainerScreenEvent.Render.Foreground event) {
@@ -84,16 +70,30 @@ public final class ALSectionedCreativeTabRenderer {
                 continue;
             }
             int y = GRID_TOP + visibleRow * ROW_HEIGHT;
-            renderBanner(graphics, y);
-            graphics.drawString(font, section.title(), GRID_LEFT + 7, y + 5, palette.text(), false);
+            drawBanner(graphics, y, tab.bannerStyle());
+            drawTitle(graphics, font, section.title(), y, tab.bannerStyle());
         }
     }
 
-    private static void renderBanner(GuiGraphics graphics, int top) {
-        graphics.fill(GRID_LEFT, top, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, palette.background());
-        graphics.fill(GRID_LEFT, top, GRID_LEFT + 1, top + ROW_HEIGHT, palette.borderMuted());
-        graphics.fill(GRID_LEFT + GRID_WIDTH - 1, top, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, palette.borderMuted());
-        graphics.fill(GRID_LEFT + 1, top, GRID_LEFT + GRID_WIDTH, top + 1, palette.borderPrimary());
-        graphics.fill(GRID_LEFT + 1, top + ROW_HEIGHT - 1, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, palette.borderMuted());
+    private static void drawBanner(GuiGraphics graphics, int top, ALBannerStyle style) {
+        if (style instanceof ALBannerStyle.Colors colors) {
+            graphics.fill(GRID_LEFT, top, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, colors.background());
+            graphics.fill(GRID_LEFT, top, GRID_LEFT + 1, top + ROW_HEIGHT, colors.borderMuted());
+            graphics.fill(GRID_LEFT + GRID_WIDTH - 1, top, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, colors.borderMuted());
+            graphics.fill(GRID_LEFT + 1, top, GRID_LEFT + GRID_WIDTH, top + 1, colors.borderPrimary());
+            graphics.fill(GRID_LEFT + 1, top + ROW_HEIGHT - 1, GRID_LEFT + GRID_WIDTH, top + ROW_HEIGHT, colors.borderMuted());
+        } else if (style instanceof ALBannerStyle.Texture texture) {
+            // 整张贴图拉伸铺满横幅行（建议 PNG 尺寸与横幅一致：162×18）
+            graphics.blit(texture.texture(), GRID_LEFT, top, GRID_WIDTH, ROW_HEIGHT,
+                    0.0F, 0.0F, GRID_WIDTH, ROW_HEIGHT, GRID_WIDTH, ROW_HEIGHT);
+        }
+    }
+
+    private static void drawTitle(GuiGraphics graphics, Font font, Component title, int top, ALBannerStyle style) {
+        if (style instanceof ALBannerStyle.Colors colors) {
+            graphics.drawString(font, title, GRID_LEFT + 7, top + 5, colors.text(), false);
+        } else if (style instanceof ALBannerStyle.Texture) {
+            graphics.drawString(font, title, GRID_LEFT + 7, top + 5, TEXTURE_TEXT_COLOR, true);
+        }
     }
 }

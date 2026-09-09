@@ -24,21 +24,37 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
 
     private final List<ALCreativeTabSection> sections;
     private final Consumer<ItemDisplayParameters> populator;
+    private final ALBannerStyle bannerStyle;
     private Collection<ItemStack> displayItems = List.of();
     private Set<ItemStack> searchItems = ItemStackLinkedSet.createTypeAndComponentsSet();
     private List<SectionLayout> sectionLayouts = List.of();
     @Nullable
     private ItemDisplayParameters cachedParameters;
 
-    private ALSectionedCreativeModeTab(Builder builder, List<ALCreativeTabSection> sections, Consumer<ItemDisplayParameters> populator) {
+    private ALSectionedCreativeModeTab(Builder builder, List<ALCreativeTabSection> sections, ALBannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator) {
         super(builder);
         this.sections = List.copyOf(sections);
+        this.bannerStyle = bannerStyle;
         this.populator = populator;
     }
 
+    /** 使用 AbyssLib 默认横幅样式（{@link ALBannerStyle#DEFAULT}）构建。 */
     public static Builder configure(Builder builder, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
+        return configure(builder, ALBannerStyle.DEFAULT, populator, sections);
+    }
+
+    /**
+     * 指定横幅样式构建：每个标签页可独立使用自己的纯色或贴图横幅
+     * （见 {@link ALBannerStyle}），不指定则用默认样式。
+     */
+    public static Builder configure(Builder builder, ALBannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
         List<ALCreativeTabSection> sectionList = List.of(sections);
-        return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList, populator));
+        return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList, bannerStyle, populator));
+    }
+
+    /** 本标签页使用的横幅样式（渲染器按此绘制分区标题行）。 */
+    public ALBannerStyle bannerStyle() {
+        return bannerStyle;
     }
 
     @Override

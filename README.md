@@ -50,10 +50,20 @@ public class MyMod {
 建自己的分区与标签页：
 
 > **分区标题已开箱即用**：AbyssLib 自带客户端标题渲染器
-> （`ALSectionedCreativeTabRenderer`，随 `AbyssLibClient` 自动注册），
-> 打开创造栏时会在分区前的空行上绘制标题横幅，消费方无需任何客户端代码。
-> 配色可用 `ALSectionedCreativeTabRenderer.setPalette(...)` 一行定制
-> （构造参数：背景/暗边框/亮边框/文字 ARGB）。
+> （`ALSectionedCreativeTabRenderer`，随 `AbyssLibClient` 自动注册），消费方无需任何客户端代码。
+> **横幅样式按标签页各自独立**（默认绿色系 `ALBannerStyle.DEFAULT`），建标签页时用
+> `configure(...)` 第二个参数一行指定——纯色或贴图：
+>
+> ```java
+> // 纯色横幅（ARGB）：
+> ALSectionedCreativeModeTab.configure(CreativeModeTab.builder().title(...).icon(...),
+>         ALBannerStyle.colors(0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
+>         MyItemGroups::populate, TS_ITEMS, TS_BLOCKS).build();
+>
+> // 贴图横幅：整张 PNG 拉伸铺满 162×18 横幅行，只写路径即可：
+> ALBannerStyle.texture("mymod", "textures/gui/creative/banner");
+> // 等价写法：ALBannerStyle.texture("mymod:textures/gui/creative/banner")
+> ```
 
 ```java
 public final class MyItemGroups {
@@ -123,7 +133,7 @@ repositories {
 dependencies {
     // 保留 POM 传递：AbyssLib 的 runtime 依赖（Registrate / SBM）会进入本模组 dev 运行 classpath，
     // 而生产环境这两者只由 AbyssLib 的 jarJar 唯一提供（本 jar 不会内嵌它们）。
-    implementation("com.altnoir.abysslib:AbyssLib:1.1.0")
+    implementation("com.altnoir.abysslib:AbyssLib:1.2.0")
     // 编译期 API（与 AbyssLib 内置版本必须一致，禁止再各自 jarJar）：
     compileOnly "com.tterrag.registrate:Registrate:MC1.21-1.3.0+67"
     compileOnly "com.github.mcmodderanchor:simplebedrockmodel:2.5.1-neoforge-mc1.21.1"
