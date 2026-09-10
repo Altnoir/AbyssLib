@@ -4,9 +4,12 @@ Altnoir 系列模组的公共前置库（NeoForge 1.21.1 / Java 21）。
 
 - 命名空间（mod id）：`abysslib`
 - 包名：`com.altnoir.abysslib`
-- 类前缀：`AL`（如 `ALRegistrate` / `ALCreativeTabSection`）
+- 类前缀：`AL`（本库自己的类，如 `ALCreativeTabSection`）；内置框架为 `Reginth`
 - 作者：Altnoir
-- 功能：**jarJar 内置 Registrate**，提供通用 `ALRegistrate` 与分区式创造栏；**1.3.0 起源码内置 CTM / 动态模型加载器（移植自上游 Athena，命名统一为 `abysslib`）**（Simple Bedrock Model 不再由本库内置）
+- 功能：**源码级内置注册框架 `Reginth`**（fork 自 Registrate，命名空间 `com.altnoir.abysslib.reginth`）与分区式创造栏；**1.3.0 起源码内置 CTM / 动态模型加载器（移植自上游 Athena，命名统一为 `abysslib`）**（Simple Bedrock Model 不再由本库内置）
+
+> **1.4.0 变更（破坏性）**：原本以 `jarJar` 引入的外部 `com.tterrag.registrate:Registrate` 已改为**源码级内置**，
+> 包名与两个类名发生了变化，消费方需改 import——见 [迁移到 Reginth](#4-迁移到-reginth140-起)。
 
 ## 分支说明
 
@@ -14,25 +17,30 @@ Altnoir 系列模组的公共前置库（NeoForge 1.21.1 / Java 21）。
 
 | 分支/目录 | 目标 | 关键差异 |
 |---|---|---|
-| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | Registrate `MC1.21-1.3.0+67`（devos）；分区栏=populator + ALBannerStyle（纯色/格数贴图，`AbyssLibClient` 事件自动渲染）；**源码内置模型加载器**（`abysslib:model`、`abysslib:loader`） |
-| `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | Registrate `MC26.1-1.5.7`（gegy.dev）；分区栏=MIA-26.1 模型（`ALCreativeTabSection` 按 `Identifier` 收集 + 每分区 bannerSprite + mixin 渲染）；暂未内置该模型加载器 |
+| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | **源码内置注册框架 `Reginth`**（1.4.0 起，fork 自 Registrate `MC1.21-1.3.0+67`）；分区栏=populator + ALBannerStyle（纯色/格数贴图，`AbyssLibClient` 事件自动渲染）；**源码内置模型加载器**（`abysslib:model`、`abysslib:loader`） |
+| `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | 仍以外部依赖方式使用 Registrate `MC26.1-1.5.7`（gegy.dev）；分区栏=MIA-26.1 模型（`ALCreativeTabSection` 按 `Identifier` 收集 + 每分区 bannerSprite + mixin 渲染）；暂未内置该模型加载器 |
 
-两线的共同策略：**只内置 Registrate；Simple Bedrock Model / mae 不由本库内置**，需要 SBM 的模组自行声明。
-（该模型加载器目前只在 1.21.1 线内置。）
+两线的共同策略：**只内置注册框架；Simple Bedrock Model / mae 不由本库内置**，需要 SBM 的模组自行声明。
+（该模型加载器目前只在 1.21.1 线内置；注册框架的源码内置目前也只在 1.21.1 线。）
 
 ## 内置库（唯一提供者）
 
 | 库 | 提供方式 | 版本 | 说明 |
 |---|---|---|---|
-| Registrate | jarJar | `MC1.21-1.3.0+67` | 注册框架 |
+| Reginth（fork 自 Registrate） | **源码级合并**（1.4.0 起） | 上游 `MC1.21-1.3.0+67` | 注册框架；包名 `com.altnoir.abysslib.reginth`，见 [§4 迁移到 Reginth](#4-迁移到-reginth140-起) |
 | Athena | **源码级合并**（1.3.0 起） | 上游 1.21.1 分支 `4.0.6` | CTM / 动态模型加载器，已改名到 `abysslib` 命名空间，见 [内置模型加载器](#3-内置模型加载器ctm--动态模型130-起) |
 
-**铁律（Registrate）**：只由 AbyssLib 在运行时提供。依赖本库的模组一律：
-- 无需自行 `compileOnly`/`jarJar` Registrate——AbyssLib 以 `api` 依赖把它送进模组的编译 classpath，以 jarJar 提供运行时唯一副本（mods.toml 声明 required 依赖 `abysslib`）
-- 绝不各自 jarJar Registrate，否则运行时出现多份类、跨模组传 `ItemEntry`/`BlockEntry` 会类型分裂
+**铁律（注册框架）**：`Reginth` 的类**就在 AbyssLib 的 jar 里**，不再来自外部 Maven 坐标。因此：
+- 依赖本库的模组**无需**声明任何 Registrate / Reginth 依赖，也**不要**再 `jarJar` 它——类随 `abysslib` 模组一起提供
+- 运行时天然只有一份类（不存在 jarJar 嵌套副本），跨模组传 `ItemEntry`/`BlockEntry` 不会类型分裂
+- 消费方的 `mods.toml` 声明 required 依赖 `abysslib` 即可
 
-> **Simple Bedrock Model / mae 不再由本库内置**（与 26.1 线策略一致）。需要 SBM 的模组
+> **注册框架已不再需要 `mvn.devos.one` 仓库**（该仓库原本只为解析 Registrate 构件而留）。
+> 消费方若没有其它依赖用到它，可以删掉那行 `maven { url = "https://mvn.devos.one/snapshots" }`。
+
+> **Simple Bedrock Model / mae 仍不由本库内置**。需要 SBM 的模组
 > （如 PoopSkyMod）自行声明（jitpack 坐标 + 各自 jarJar / compileOnly mae），本库不保证其单副本。
+
 
 ## 构建 / 发布
 
@@ -64,19 +72,25 @@ public static ResourceLocation loc(String path) {
 }
 ```
 
-### 1. ALRegistrate（通用 Registrate 实例）
+### 1. Reginth（通用注册框架实例）
 
 模组入口持有一个绑定自己 mod id 的实例（注册名全部是自己的命名空间）：
 
 ```java
-public class MyMod {
-    private static final ALRegistrate REGISTRATE = ALRegistrate.create(MyMod.MOD_ID);
+import com.altnoir.abysslib.reginth.Reginth;
 
-    public static ALRegistrate registrate() {
-        return REGISTRATE;
+public class MyMod {
+    private static final Reginth REGINTH = Reginth.create(MyMod.MOD_ID);
+
+    public static Reginth reginth() {
+        return REGINTH;
     }
 }
 ```
+
+`Reginth` 继承自 `AbstractReginth<Reginth>`（fork 自上游 Registrate 的 `AbstractRegistrate<T>`），
+上游的 `entry(...)` / `generic(...)` / `block(...)` / `item(...)` / `addDataGenerator(...)` 等 API 全部保留，
+只是包名与类名换了命名空间。
 
 ### 2. 分区式创造栏（ALCreativeTabSection + ALSectionedCreativeModeTab）
 
@@ -87,12 +101,12 @@ public class MyMod {
 
 ```java
 public final class MyItemGroups {
-    private static final ALRegistrate REGISTRATE = MyMod.registrate();
+    private static final Reginth REGINTH = MyMod.reginth();
 
     public static final ALCreativeTabSection TS_ITEMS = section("itemGroup.mymod.section.items");
     public static final ALCreativeTabSection TS_BLOCKS = section("itemGroup.mymod.section.blocks");
 
-    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB = REGISTRATE.generic("main",
+    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB = REGINTH.generic("main",
             Registries.CREATIVE_MODE_TAB, () ->
                     ALSectionedCreativeModeTab.configure(
                             CreativeModeTab.builder()
@@ -118,18 +132,18 @@ public final class MyItemGroups {
 }
 ```
 
-注册内容走 `ALRegistrate` 的 `block()` / `item()`（自动模型/语言/战利品），并用 `defaultCreativeSection(...)` 自动归类：
+注册内容走 `Reginth` 的 `block()` / `item()`（自动模型/语言/战利品），并用 `defaultCreativeSection(...)` 自动归类：
 
 ```java
 public final class MyItems {
-    public static final ItemEntry<Item> SOME_ITEM = REGISTRATE.item("some_item", Item::new)
+    public static final ItemEntry<Item> SOME_ITEM = REGINTH.item("some_item", Item::new)
             .register();
 
     // 链式 API：排除默认分区 / 额外加入某分区（block()/item() 均支持）
-    public static final ItemEntry<Item> NO_TAB_ITEM = REGISTRATE.item("no_tab_item", Item::new)
+    public static final ItemEntry<Item> NO_TAB_ITEM = REGINTH.item("no_tab_item", Item::new)
             .ignore()
             .register();
-    public static final ItemEntry<Item> EXTRA_TAB_ITEM = REGISTRATE.item("extra_tab_item", Item::new)
+    public static final ItemEntry<Item> EXTRA_TAB_ITEM = REGINTH.item("extra_tab_item", Item::new)
             .addTabSection(MyItemGroups.TS_BLOCKS)
             .register();
 }
@@ -173,7 +187,7 @@ public final class MyItemGroups {
     // …TS_ITEMS / TS_BLOCKS 等分区同上…
 
     // 方式一：内置预设贴图，只写格数（texture(4) → banner_4.png，72px）
-    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_A = REGISTRATE.generic("tab_a",
+    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_A = REGINTH.generic("tab_a",
             Registries.CREATIVE_MODE_TAB, () ->
                     ALSectionedCreativeModeTab.configure(
                             CreativeModeTab.builder()
@@ -185,7 +199,7 @@ public final class MyItemGroups {
     ).register();
 
     // 方式二：纯色 + 自定义格数（颜色模式同样支持长度）
-    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_B = REGISTRATE.generic("tab_b",
+    public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB_B = REGINTH.generic("tab_b",
             Registries.CREATIVE_MODE_TAB, () ->
                     ALSectionedCreativeModeTab.configure(
                             CreativeModeTab.builder()
@@ -481,25 +495,22 @@ generators.addProvider(event.includeClient(), new CtmModelGen(packOutput, existi
 ```gradle
 repositories {
     maven { url = file("../AbyssLib/repo") }      // 本地发布仓库（先 ./gradlew publish）
-    maven { url = "https://mvn.devos.one/snapshots" } // Registrate
+    // 1.4.0 起注册框架已源码内置，不再需要 mvn.devos.one（Registrate）仓库。
     // 需要 SBM 的模组请自行再加 jitpack（SBM 不再由 AbyssLib 提供）
     // maven { url = "https://jitpack.io" }
 }
 
 dependencies {
-    // AbyssLib 以 api + jarJar 提供 Registrate：
-    //   - 编译期：api 依赖把它传入本模组的 compile classpath（无需自行 compileOnly）；
-    //   - 运行时：jarJar 内嵌唯一副本（生产环境安装 abysslib 即可）。
-    // 禁止本模组再自行 jarJar Registrate。
-    // 1.3.0 起还内置 CTM/动态模型加载器（abysslib 命名空间），同样无需本模组声明任何额外依赖。
-    implementation("com.altnoir.abysslib:AbyssLib:1.3.0")
+    // AbyssLib 自带注册框架（Reginth）与 CTM/动态模型加载器，均在同一份 jar 里：
+    // 本模组无需声明 Registrate / Reginth / 其它任何额外依赖，也不要再 jarJar 它们。
+    implementation("com.altnoir.abysslib:AbyssLib:1.4.0")
     // 需要 SBM / mae 的模组自行声明（jitpack 坐标 + jarJar / compileOnly），不再由本库提供。
 }
 ```
 
-> 上面 repositories 里的 Registrate（mvn.devos.one）仍需保留：它用于解析 AbyssLib `api`
-> 依赖传递出的 Registrate 构件（编译与 dev 运行需要）。
-> 若出于隔离需要把 AbyssLib 设成 `{ transitive = false }`，需自行补 Registrate 的 `runtimeOnly`。
+> **不需要 `mvn.devos.one` 仓库**。旧版本（≤1.3.0）需要它来解析 AbyssLib `api` 依赖传递出的
+> Registrate 构件；1.4.0 起 Reginth 的类直接随 `AbyssLib` 的 jar 发布，那条仓库可以删掉。
+> 同理，把 AbyssLib 设成 `{ transitive = false }` 也不再需要补 Registrate 的 `runtimeOnly`。
 
 mods.toml 声明：
 
@@ -511,6 +522,38 @@ versionRange = "[1.0,)"
 ordering = "AFTER"
 side = "BOTH"
 ```
+
+### 5. 迁移到 Reginth（1.4.0 起）
+
+1.4.0 把外部 `com.tterrag.registrate:Registrate` 换成了源码内置的 `com.altnoir.abysslib.reginth`。
+**只有包前缀和两个类名变了**，其余 60 个类型名全部保持原样：
+
+| 旧 | 新 |
+|---|---|
+| `com.tterrag.registrate.**` | `com.altnoir.abysslib.reginth.**` |
+| `com.tterrag.registrate.AbstractRegistrate` | `com.altnoir.abysslib.reginth.AbstractReginth` |
+| `com.tterrag.registrate.Registrate` | `com.altnoir.abysslib.reginth.Reginth` |
+| `ALRegistrate`（本库旧类，已删除） | `Reginth`（分区创造栏逻辑已并入其中） |
+
+像 `RegistrateBlockstateProvider` / `RegistrateItemModelProvider` / `RegistrateLangProvider` /
+`RegistrateRecipeProvider` / `RegistrateDataProvider` / `RegistrateTagsProvider` / `ProviderType` /
+`DataGenContext` / `BlockEntry` / `ItemEntry` / `RegistryEntry` / `NonNullFunction` 这些
+**只改包名，类名不动**。
+
+批量改写（只动 import 行，其余步骤顺序不能反）：
+
+```powershell
+Get-ChildItem -Recurse src -Filter *.java | ForEach-Object {
+  $t = Get-Content $_.FullName -Raw
+  $n = $t -replace 'com\.tterrag\.registrate\.AbstractRegistrate', 'com.altnoir.abysslib.reginth.AbstractReginth'
+  $n = $n -replace 'com\.tterrag\.registrate\.Registrate\b', 'com.altnoir.abysslib.reginth.Reginth'
+  $n = $n -replace 'com\.tterrag\.registrate', 'com.altnoir.abysslib.reginth'
+  if ($t -ne $n) { Set-Content $_.FullName $n -Encoding utf8NoBOM }
+}
+```
+
+然后把你代码里的 `ALRegistrate` 改成 `Reginth`（构造/持有/方法返回类型），
+并把 `abysslib_version` 提到 `1.4.0`。
 
 ## 备注
 

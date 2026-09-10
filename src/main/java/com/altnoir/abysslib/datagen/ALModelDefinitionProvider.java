@@ -1,7 +1,7 @@
 package com.altnoir.abysslib.datagen;
 
 import com.altnoir.abysslib.AbyssLib;
-import com.tterrag.registrate.util.entry.BlockEntry;
+import com.altnoir.abysslib.reginth.util.entry.BlockEntry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;

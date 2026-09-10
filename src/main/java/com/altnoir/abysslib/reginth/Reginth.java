@@ -1,9 +1,10 @@
-package com.altnoir.abysslib.registrate;
+package com.altnoir.abysslib.reginth;
 
 import com.altnoir.abysslib.creative.ALCreativeTabSection;
+import com.altnoir.abysslib.reginth.builders.ReginthBlockBuilder;
+import com.altnoir.abysslib.reginth.builders.ReginthItemBuilder;
+import com.altnoir.abysslib.reginth.util.nullness.NonNullFunction;
 import com.mojang.logging.LogUtils;
-import com.tterrag.registrate.AbstractRegistrate;
-import com.tterrag.registrate.util.nullness.NonNullFunction;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -17,62 +18,73 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * 通用 Registrate 实例（对照 PoopSky 的 PoRegistrate 抽象，去掉 PoopSky 特有内容）。
+ * AbyssLib 内置的注册框架入口（源码级内置自上游 Registrate，包名与类名已改为本库命名空间）。
+ * <p>
+ * 除上游能力外，本类额外承担**分区式创造栏**的接线：通过 {@link #defaultCreativeSection}
+ * 设定默认分区后，之后经 {@link #block}/{@link #item} 注册的方块/物品会自动归入该分区
+ * （用 {@code ignore()} 排除，或用 {@code addTabSection(..)} 追加到其它分区）。
  * <p>
  * 用法：模组入口持有一个实例：
  * <pre>{@code
- * private static final ALRegistrate REGISTRATE = ALRegistrate.create(MOD_ID);
+ * private static final Reginth REGINTH = Reginth.create(MOD_ID);
  * }</pre>
- * 通过 {@link #defaultCreativeSection} 设置后，后续经 {@code block()}/{@code item()}
- * 注册的方块/物品会自动归入对应创造栏分区（忽略列表中的除外）。
  */
-public class ALRegistrate extends AbstractRegistrate<ALRegistrate> {
+public class Reginth extends AbstractReginth<Reginth> {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private ALCreativeTabSection defaultCreativeSection;
     private final Set<String> ignoredCreativeTabEntries = new HashSet<>();
 
-    protected ALRegistrate(String modid) {
+    protected Reginth(String modid) {
         super(modid);
     }
 
-    public static ALRegistrate create(String modId) {
-        ALRegistrate registrate = new ALRegistrate(modId);
+    /**
+     * 创建一个绑定 {@code modid} 的 {@link Reginth}，并为其注册事件监听器
+     * （注册与数据生成）。与上游语义一致。
+     */
+    public static Reginth create(String modId) {
+        Reginth reginth = new Reginth(modId);
         Optional<IEventBus> modEventBus = ModList.get()
                 .getModContainerById(modId)
                 .map(ModContainer::getEventBus);
-        modEventBus.ifPresentOrElse(registrate::registerEventListeners,
+        modEventBus.ifPresentOrElse(reginth::registerEventListeners,
                 () -> LOGGER.error("Failed to register event listeners for mod {}", modId));
-        return registrate;
+        return reginth;
     }
 
-    public ALRegistrate defaultCreativeSection(ALCreativeTabSection section) {
+    /** 设定默认创造栏分区：之后注册的方块/物品自动加入该分区。 */
+    public Reginth defaultCreativeSection(ALCreativeTabSection section) {
         this.defaultCreativeSection = section;
         return this;
     }
 
-    void ignoreCreativeTab(String name) {
+    /**
+     * 把某注册名加入创造栏分区排除表。
+     * 供 {@code ReginthBlockBuilder}/{@code ReginthItemBuilder} 的 {@code ignore()} 调用。
+     */
+    public void ignoreCreativeTab(String name) {
         ignoredCreativeTabEntries.add(name);
     }
 
     /**
      * 判断某注册名是否被显式排除在默认创造栏分区之外。
-     * 包内可见：{@link ALItemBuilder#ignore()} / {@link ALBlockBuilder#ignore()} 通过它
+     * {@link ReginthItemBuilder#ignore()} / {@link ReginthBlockBuilder#ignore()} 通过它
      * 在 register 阶段二次校验，保证链式调用中途调用 ignore() 也生效。
      */
-    boolean isIgnoredCreativeTab(String name) {
+    public boolean isIgnoredCreativeTab(String name) {
         return ignoredCreativeTabEntries.contains(name);
     }
 
     @Override
-    public <T extends Block, P> ALBlockBuilder<T, P> block(
+    public <T extends Block, P> ReginthBlockBuilder<T, P> block(
             P parent,
             String name,
             NonNullFunction<BlockBehaviour.Properties, T> factory
     ) {
-        return (ALBlockBuilder<T, P>) this
+        return (ReginthBlockBuilder<T, P>) this
                 .entry(name, callback -> {
-                    ALBlockBuilder<T, P> builder = ALBlockBuilder.create(this, parent, name, callback, factory);
+                    ReginthBlockBuilder<T, P> builder = ReginthBlockBuilder.create(this, parent, name, callback, factory);
                     if (defaultCreativeSection != null && !ignoredCreativeTabEntries.contains(name)) {
                         builder.defaultCreativeSection(defaultCreativeSection);
                     }
@@ -81,14 +93,14 @@ public class ALRegistrate extends AbstractRegistrate<ALRegistrate> {
     }
 
     @Override
-    public <T extends Block> ALBlockBuilder<T, ALRegistrate> block(
+    public <T extends Block> ReginthBlockBuilder<T, Reginth> block(
             NonNullFunction<BlockBehaviour.Properties, T> factory
     ) {
         return block(self(), currentName(), factory);
     }
 
     @Override
-    public <T extends Block> ALBlockBuilder<T, ALRegistrate> block(
+    public <T extends Block> ReginthBlockBuilder<T, Reginth> block(
             String name,
             NonNullFunction<BlockBehaviour.Properties, T> factory
     ) {
@@ -96,7 +108,7 @@ public class ALRegistrate extends AbstractRegistrate<ALRegistrate> {
     }
 
     @Override
-    public <T extends Block, P> ALBlockBuilder<T, P> block(
+    public <T extends Block, P> ReginthBlockBuilder<T, P> block(
             P parent,
             NonNullFunction<BlockBehaviour.Properties, T> factory
     ) {
@@ -104,14 +116,14 @@ public class ALRegistrate extends AbstractRegistrate<ALRegistrate> {
     }
 
     @Override
-    public <T extends Item, P> ALItemBuilder<T, P> item(
+    public <T extends Item, P> ReginthItemBuilder<T, P> item(
             P parent,
             String name,
             NonNullFunction<Item.Properties, T> factory
     ) {
-        return (ALItemBuilder<T, P>) this
+        return (ReginthItemBuilder<T, P>) this
                 .entry(name, callback -> {
-                    ALItemBuilder<T, P> builder = ALItemBuilder.create(this, parent, name, callback, factory);
+                    ReginthItemBuilder<T, P> builder = ReginthItemBuilder.create(this, parent, name, callback, factory);
                     if (defaultCreativeSection != null && !ignoredCreativeTabEntries.contains(name)) {
                         builder.defaultCreativeSection(defaultCreativeSection);
                     }
@@ -120,14 +132,14 @@ public class ALRegistrate extends AbstractRegistrate<ALRegistrate> {
     }
 
     @Override
-    public <T extends Item> ALItemBuilder<T, ALRegistrate> item(
+    public <T extends Item> ReginthItemBuilder<T, Reginth> item(
             NonNullFunction<Item.Properties, T> factory
     ) {
         return item(self(), currentName(), factory);
     }
 
     @Override
-    public <T extends Item> ALItemBuilder<T, ALRegistrate> item(
+    public <T extends Item> ReginthItemBuilder<T, Reginth> item(
             String name,
             NonNullFunction<Item.Properties, T> factory
     ) {
@@ -135,7 +147,7 @@ public class ALRegistrate extends AbstractRegistrate<ALRegistrate> {
     }
 
     @Override
-    public <T extends Item, P> ALItemBuilder<T, P> item(
+    public <T extends Item, P> ReginthItemBuilder<T, P> item(
             P parent,
             NonNullFunction<Item.Properties, T> factory
     ) {

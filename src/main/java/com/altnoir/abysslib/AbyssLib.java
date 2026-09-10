@@ -10,7 +10,8 @@ import org.slf4j.Logger;
 
 /**
  * AbyssLib —— Altnoir 系列模组的公共前置库。
- * 内置 Registrate 与 Simple Bedrock Model（jarJar），提供分区式创造栏与 {@code ALRegistrate} 辅助。
+ * **源码级内置**注册框架 {@code Reginth}（fork 自 Registrate，见 {@code com.altnoir.abysslib.reginth}），
+ * 提供分区式创造栏；另源码内置 CTM / 动态模型加载器（移植自 Athena）。
  * 本身不注册任何游戏内容。
  * <p>
  * 同时提供一组 ResourceLocation / 注册表路径工具（{@link #loc} 等），

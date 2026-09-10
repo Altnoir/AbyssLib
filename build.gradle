@@ -78,12 +78,9 @@ tasks.named('jar', Jar).configure {
 }
 
 dependencies {
-    // 内置 Registrate：本库是它的唯一提供者（运行时用这里的 jarJar 拷贝）。
-    implementation jarJar("com.tterrag.registrate:Registrate:${registrate_version}")
-    // api：把 Registrate 暴露给消费方编译期（module metadata / POM 会以 compile 作用域传递），
-    // 消费方无需再自行 compileOnly Registrate；运行仍只由本库 jarJar 提供。
-    api "com.tterrag.registrate:Registrate:${registrate_version}"
-    // 说明：Simple Bedrock Model / mae 不再由本库内置或暴露；
+    // 注册框架（Registrate）已**源码级内置**为 com.altnoir.abysslib.reginth，不再依赖外部 Maven 坐标，
+    // 也不再需要 jarJar：类就在本模组 jar 里，天然单副本、无版本冲突。
+    // 说明：Simple Bedrock Model / mae 不由本库内置或暴露；
     // 需要 SBM 的模组自行以 jitpack 坐标 + 本地 jarJar 提供（与 26.1 线策略一致）。
 }
 

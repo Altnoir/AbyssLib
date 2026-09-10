@@ -1,3 +1,50 @@
+# 第三方代码署名：Registrate（→ Reginth）
+
+AbyssLib 自 **1.4.0** 起**内置（源码级合并）**了 Registrate 的 1.21 分支代码，并改名为 `Reginth`。
+
+- 上游项目：https://github.com/tterrag1098/Registrate （源码分支 `1.21/dev`）
+- 上游版本：`MC1.21-1.3.0+67`（取自 Gradle 缓存的 `Registrate-MC1.21-1.3.0+67-sources.jar`）
+- 上游作者：tterrag1098 及 Registrate 贡献者
+- 上游许可：**MIT**（与上文本库自身许可一致；MIT 要求保留版权与许可声明）
+
+> ⚠️ **待核项（重要）**：搬运时所依据的 `-sources.jar` **不包含上游 LICENSE 文件**（jar 内只有
+> `META-INF/MANIFEST.MF`），且本环境无外网，无法读取上游仓库的 `LICENSE`。因此下方
+> "Registrate 原始许可（MIT）" 一节里的**版权行文字是按 MIT 模板填写的、尚未与上游原文逐字核对**。
+> 请在有网络时打开 <https://github.com/tterrag1098/Registrate/blob/1.21/dev/LICENSE>
+> 核对并按原文更正版权行（通常是 `Copyright (c) <年份> <作者/组织>`）。
+
+## 内置范围
+
+| 上游内容 | 处置 |
+|---|---|
+| `common/src/main/java/com/tterrag/registrate/**`（66 个 `.java`，6896 行） | 全部移植到 `com.altnoir.abysslib.reginth.**` |
+| 上游 Gradle 构建脚本、`.github`、资源文件 | 未移植（本库用自己的 ModDevGradle 构建） |
+
+## 相对上游的修改
+
+1. **包名**：`com.tterrag.registrate.**` → `com.altnoir.abysslib.reginth.**`。
+2. **类名**（**只有这两个**，其余约 60 个类型名保持不变）：
+   - `AbstractRegistrate` → `AbstractReginth`
+   - `Registrate` → `Reginth`
+3. **`Reginth` 被重写**：上游 `Registrate` 只是一个 37 行的工厂类（`create(String)` + 构造器）。
+   本库把**原 `ALRegistrate`** 的分区创造栏逻辑（`defaultCreativeSection` / `ignoreCreativeTab` /
+   `isIgnoredCreativeTab`，以及覆写的 `block(...)` / `item(...)`）并入了 `Reginth`。
+   **原 `ALRegistrate` 类已删除。**
+4. **本库新增的两个类（上游没有）**：`reginth/builders/` 下的
+   `ReginthBlockBuilder`（extends 上游 `BlockBuilder`）与 `ReginthItemBuilder`（extends 上游 `ItemBuilder`）。
+   它们在纯上游 builder 之上加了"默认生成 blockstate/loot/lang"与"创造栏分区"两件事，
+   由 `Reginth.block(...)` / `Reginth.item(...)` 返回。**与上游 diff 时请注意这两个文件是本库新增，
+   以及同名包内其余文件才是搬运来的上游代码。**
+5. **可见性调整**：因 `Reginth`（`…reginth`）与上述两个 builder（`…reginth.builders`）
+   位于不同包，原先包内可见的 `ignoreCreativeTab` / `isIgnoredCreativeTab` /
+   `ReginthBlockBuilder.create` / `ReginthItemBuilder.create` / `defaultCreativeSection` 放宽为 `public`。
+6. **清理编译残留**：删除全部 `@javax.annotation.Generated(...)` 注解与 `import javax.annotation.Generated;`
+   （JSR-250 自 Java 11 起已不在 JDK 中）；删除 3 个 loot 文件中 delombok 遗留的无用
+   `import lombok.*`（`ReginthBlockLootTables` / `ReginthEntityLootTables` / `ReginthLootTableProvider`）。
+7. **其余逻辑与上游一致**（含上游的行为特征与已知限制）。
+
+---
+
 # 第三方代码署名：Athena
 
 AbyssLib 自 1.3.0 起**内置（源码级合并）**了 Athena 的 1.21.1 NeoForge 部分代码。
@@ -87,6 +134,36 @@ AbyssLib 自 1.3.0 起**内置（源码级合并）**了 Athena 的 1.21.1 NeoFo
 MIT License
 
 Copyright (c) 2024 Terrarium Earth
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+## Registrate 原始许可（MIT）
+
+> ⚠️ 版权行**待与上游 LICENSE 原文核对**，见本文档开头的"待核项"。
+
+```
+MIT License
+
+Copyright (c) tterrag1098 and Registrate contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
