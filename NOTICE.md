@@ -1,3 +1,13 @@
+# 第三方代码署名
+
+> **本库自身的许可**见根目录 [`LICENSE`](LICENSE)（MIT，`Copyright (c) 2025 Altnoir`）。
+> **本文件**只负责记录 AbyssLib 内置/移植的**第三方代码**的署名与许可原文——这些代码各有其
+> 原始版权人，MIT 要求保留其版权与许可声明。两者分工不同，请勿混淆：
+> - `LICENSE` = 本库自己写的代码（注册框架扩展、模型加载器接线、创造栏、datagen 等）
+> - `NOTICE.md` = 内置的第三方源码（Registrate → Reginth、Athena → 模型加载器）
+
+---
+
 # 第三方代码署名：Registrate（→ Reginth）
 
 AbyssLib 自 **1.4.0** 起**内置（源码级合并）**了 Registrate 的 1.21 分支代码，并改名为 `Reginth`。
@@ -5,7 +15,7 @@ AbyssLib 自 **1.4.0** 起**内置（源码级合并）**了 Registrate 的 1.21
 - 上游项目：https://github.com/tterrag1098/Registrate （源码分支 `1.21/dev`）
 - 上游版本：`MC1.21-1.3.0+67`（取自 Gradle 缓存的 `Registrate-MC1.21-1.3.0+67-sources.jar`）
 - 上游作者：tterrag1098 及 Registrate 贡献者
-- 上游许可：**MIT**（与上文本库自身许可一致；MIT 要求保留版权与许可声明）
+- 上游许可：**MIT**（MIT 要求保留版权与许可声明，原文见本文件末尾）
 
 > ⚠️ **待核项（重要）**：搬运时所依据的 `-sources.jar` **不包含上游 LICENSE 文件**（jar 内只有
 > `META-INF/MANIFEST.MF`），且本环境无外网，无法读取上游仓库的 `LICENSE`。因此下方
