@@ -70,6 +70,13 @@ neoForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+// 防护：本库是纯代码前置库，不向发布产物里塞原版资源覆盖（assets/minecraft/**）。
+// 起因：本地调试用的 blockstate 覆盖曾残留在 build 输出中，导致原版方块（草方块/石头）被替换。
+// 如确实需要在库内覆盖原版资源，删掉本段即可。
+tasks.named('jar', Jar).configure {
+    exclude 'assets/minecraft/**'
+}
+
 dependencies {
     // 内置 Registrate：本库是它的唯一提供者（运行时用这里的 jarJar 拷贝）。
     implementation jarJar("com.tterrag.registrate:Registrate:${registrate_version}")

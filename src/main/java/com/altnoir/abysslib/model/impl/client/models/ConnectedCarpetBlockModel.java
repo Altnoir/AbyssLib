@@ -1,0 +1,94 @@
+package com.altnoir.abysslib.model.impl.client.models;
+
+import com.google.gson.JsonObject;
+import com.altnoir.abysslib.model.api.client.models.ALBlockModel;
+import com.altnoir.abysslib.model.api.client.models.ALModelFactory;
+import com.altnoir.abysslib.model.api.client.models.ALQuad;
+import com.altnoir.abysslib.model.api.client.utils.AppearanceAndTintGetter;
+import com.altnoir.abysslib.model.api.client.utils.CtmState;
+import com.altnoir.abysslib.model.api.client.utils.CtmUtils;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.Material;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public class ConnectedCarpetBlockModel implements ALBlockModel {
+
+    public static final ALModelFactory FACTORY = new Factory();
+
+    private static final List<ALQuad> SIDE = List.of(new ALQuad(0, 0, 1f, 0.0625f, 0, Rotation.NONE, 0));
+    private static final List<ALQuad> CENTER_TOP = List.of(new ALQuad(1, 0, 1, 1, 0, Rotation.NONE, 0.9375f));
+    private static final List<ALQuad> CENTER_BOTTOM = List.of(new ALQuad(1, 0, 1, 1, 0, Rotation.NONE, 0.0625f));
+
+    private final Int2ObjectMap<Material> materials;
+    private final BiPredicate<BlockState, BlockState> connectTo;
+
+    public ConnectedCarpetBlockModel(Int2ObjectMap<Material> materials, BiPredicate<BlockState, BlockState> connectTo) {
+        this.materials = materials;
+        this.connectTo = connectTo;
+    }
+
+    @Override
+    public List<ALQuad> getQuads(AppearanceAndTintGetter level, BlockState blockState, BlockPos pos, Direction direction) {
+        if (direction.getAxis().isHorizontal()) {
+            return SIDE;
+        }
+
+        final CtmState state = CtmState.from(level, blockState, pos, direction, CtmUtils.check(level, blockState, pos, direction, connectTo));
+
+        if (state.allTrue()) {
+            return direction == Direction.UP ? CENTER_TOP : CENTER_BOTTOM;
+        }
+
+        final float depth = direction == Direction.UP ? 0.9375f : 0.0625f;
+
+        return List.of(
+                ALQuad.withState(state.up(), state.left(), state.upLeft(), 0, 0.5f, 1f, 0.5f, depth),
+                ALQuad.withState(state.up(), state.right(), state.upRight(), 0.5f, 1f, 1f, 0.5f, depth),
+                ALQuad.withState(state.down(), state.left(), state.downLeft(), 0, 0.5f, 0.5f, 0f, depth),
+                ALQuad.withState(state.down(), state.right(), state.downRight(), 0.5f, 1f, 0.5f, 0f, depth)
+        );
+    }
+
+    @Override
+    public Map<Direction, List<ALQuad>> getDefaultQuads(Direction direction) {
+        if (direction == null) return Map.of();
+        final float depth = direction == Direction.UP ? 0.9375f : 0.0625f;
+        return Map.of(direction, List.of(
+                ALQuad.withState(false, false, false, 0, 0.5f, 1f, 0.5f, depth),
+                ALQuad.withState(false, false, false, 0.5f, 1f, 1f, 0.5f, depth),
+                ALQuad.withState(false, false, false, 0, 0.5f, 0.5f, 0f, depth),
+                ALQuad.withState(false, false, false, 0.5f, 1f, 0.5f, 0f, depth)
+        ));
+    }
+
+    @Override
+    public Int2ObjectMap<TextureAtlasSprite> getTextures(Function<Material, TextureAtlasSprite> getter) {
+        Int2ObjectMap<TextureAtlasSprite> textures = new Int2ObjectArrayMap<>();
+        for (var entry : materials.int2ObjectEntrySet()) {
+            textures.put(entry.getIntKey(), getter.apply(entry.getValue()));
+        }
+        return textures;
+    }
+
+    private static class Factory implements ALModelFactory {
+
+        @Override
+        public Supplier<ALBlockModel> create(JsonObject json) {
+            final var materials = CtmUtils.parseCtmMaterials(GsonHelper.getAsJsonObject(json, "ctm_textures"));
+            BiPredicate<BlockState, BlockState> conditions = CtmUtils.parseCondition(json);
+            return () -> new ConnectedCarpetBlockModel(materials, conditions);
+        }
+    }
+}
