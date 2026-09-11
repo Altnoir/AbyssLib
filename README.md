@@ -201,7 +201,7 @@ public static final EntityEntry<MyEntity> MY_ENTITY = REGINTH
 
 [Athena](https://github.com/terrarium-earth/Athena)（MIT，Terrarium Earth）的 1.21.1 NeoForge 部分
 **已源码级并入本库**：消费方可以直接写连接纹理（CTM）/ 拼接 / 柱状等动态模型，
-**无需安装 Athena 模组，也无需自行打包**。上游来源与改动清单见 [`NOTICE.md`](NOTICE.md)。
+**无需安装 Athena 模组，也无需自行打包**。上游来源与许可见 [§8 分支与许可](#8-分支与许可)。
 
 **命名统一**：类名（`AL*`）、包名（`com.altnoir.abysslib.model.**`）、资源 id 都已改为 `abysslib`。
 下文出现的 `athena:*` / `earth.terrarium.athena` 一律指**上游**写法，仅用于署名与迁移对照。
@@ -674,16 +674,12 @@ AbyssLib: emissive overlay enabled for '<blockstate>' (base=..., overlay=..., se
 
 **许可**：本库自身代码为 **MIT**，见 [`LICENSE`](LICENSE)（`Copyright (c) 2025 Altnoir`）。
 
-内置的第三方源码各有其原始版权人，署名与许可原文集中在 [`NOTICE.md`](NOTICE.md)：
+内置的第三方源码各有其原始版权人，署名与许可：
 
 | 内置内容 | 来源 | 许可 |
 |---|---|---|
 | `Reginth`（注册框架） | Registrate `MC1.21-1.3.0+67`（tterrag1098） | MIT |
 | CTM / 动态模型加载器 | Athena 1.21.1（Terrarium Earth） | MIT |
-
-> 上述声明**随产物一同打包**进 jar：`META-INF/LICENSE` 与 `META-INF/NOTICE.md`
-> （由 `build.gradle` 的 `processResources` 从仓库根目录复制）。MIT 要求再分发时保留版权与许可声明，
-> 因此这两个文件**不要从 build 配置里删掉**。
 
 ---
 
