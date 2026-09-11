@@ -56,9 +56,10 @@ public final class ALStructureLayoutCache {
     /**
      * 一份布局：结构中心锚点 + 完整 piece 列表 + <b>按 chunk 预索引</b>的取用表。
      *
-     * <p>为什么要索引：per-chunk 方案下足迹可达 (2r+1)² 个 chunk，若每个 chunk 都去遍历全量 piece 做
-     * bbox 相交测试，成本就是 <b>O(足迹面积 × piece 数)</b> —— 512 半径（4225 chunk）时不可接受。
-     * 索引在布局构建时算一次，之后每个 chunk 的取用是 O(1)。
+     * <p>为什么要索引：per-chunk 方案下足迹可达 (2r+1)² 个 chunk
+     * （上限 {@code max_distance_from_center} = 256 ⇒ 半径 16 chunk ⇒ 1089 个 chunk），
+     * 若每个 chunk 都去遍历全量 piece 做 bbox 相交测试，成本就是 <b>O(足迹面积 × piece 数)</b>，
+     * 千万级比较起步，不可接受。索引在布局构建时算一次，之后每个 chunk 的取用是 O(1)。
      */
     public record Layout(BlockPos anchor, List<StructurePiece> pieces, Map<Long, List<StructurePiece>> piecesByChunk) {
 

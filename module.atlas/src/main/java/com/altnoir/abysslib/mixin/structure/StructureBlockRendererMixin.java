@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
  * 结构方块轮廓（showBoundingBox）的可视距离：原版 {@code 96} → 至少等于结构上限（128）。
  *
  * <p>取 {@code max(96, STRUCTURE_BLOCK_MAX_SIZE)} 而不是照抄 Integrated API 的 {@code NEW_STRUCTURE_SIZE / 2}：
- * 它是按 512 算的（256 &gt; 96 才有效）；如果我们直接写 128/2 = 64，反而比原版的 96 <b>更短</b>，
- * 大结构的轮廓会更早消失。
+ * 它那边 {@code NEW_STRUCTURE_SIZE = 512}，所以算出 256（才比原版的 96 长）；如果我们照着写
+ * 本库的 128/2 = 64，反而比原版的 96 <b>更短</b>，大结构的轮廓会更早消失。
  */
 @Mixin(value = StructureBlockRenderer.class)
 public class StructureBlockRendererMixin {

@@ -782,7 +782,7 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 **结构扩展的自检**（Atlas 模块，INFO 级，启动时必打两条）：
 
 ```
-[AbyssLib/Atlas] 原版结构限制放宽（mod 加载完成）-> jigsaw: distance=512, depth=128 [codec=OK, verifyRange=待运行时, ...]
+[AbyssLib/Atlas] 原版结构限制放宽（mod 加载完成）-> jigsaw: distance=256, depth=128 [codec=OK, verifyRange=待运行时, ...]
 [AbyssLib/Atlas] 原版结构限制放宽（世界数据包加载完成）-> ... [codec=OK, verifyRange=OK, ...]
 ```
 
@@ -838,7 +838,7 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 面向"要生成**超过原版 128 格**的大结构"的消费方：长道路、巨型地牢、跨群系的连续结构。
 不覆盖任何原版文件，也不需要安装其它结构库。
 
-> 本库另外放宽了原版上限（jigsaw `max_distance_from_center` 128→512、`size` 20→128、结构方块 48→128）。
+> 本库另外放宽了原版上限（jigsaw `max_distance_from_center` 128→256、`size` 20→128、结构方块 48→128）。
 > 那属于"**能不能声明**"；本节解决的是"**能不能长出来**"——两者是互补的两层，缺一层都不成立。
 
 ### 9.1 三个新增的类型
@@ -887,7 +887,7 @@ public static void bootstrap(BootstrapContext<Structure> ctx) {
             ConstantHeight.of(VerticalAnchor.absolute(0)),
             false,                                          // use_expansion_hack
             Heightmap.Types.WORLD_SURFACE_WG,
-            128,                                            // max_distance_from_center（AbyssLib 放宽到 512）
+            128,                                            // max_distance_from_center（AbyssLib 上限 256）
             profile));
 }
 ```
@@ -1000,36 +1000,38 @@ public MyMod(IEventBus modBus, ModContainer container) {
 | 字段 | 差异 |
 |---|---|
 | `grid_profile` | **新增且必填**（引用 `atlas:grid_profile`） |
-| `max_distance_from_center` | **上限 512**（原版 128）、**推荐 256** —— 取舍与代价见 §9.4.1。同时受 `footprint_chunks * 16` 约束，超出会在运行时打一条 WARN |
+| `max_distance_from_center` | **上限 256**（原版 128）—— 取舍与代价见 §9.4.1。同时受 `footprint_chunks * 16` 约束，超出会在运行时打一条 WARN |
 | `size` | 上限 128（原版 20） |
 | 其余字段 | 与原版 jigsaw 完全一致（`start_pool` / `size` / `start_height` / `use_expansion_hack` / `project_start_to_heightmap` / `pool_aliases` / `dimension_padding` / `liquid_settings` / `biomes` / `step` / `terrain_adaptation` / `spawn_overrides`） |
 
-#### 9.4.1 `max_distance_from_center`：上限 512，**推荐 256**
+#### 9.4.1 `max_distance_from_center`：上限 **256**（原版 128）
 
-| 取值 | `footprint_chunks` | 足迹面积 | 建议 |
+| 取值 | `footprint_chunks` | 足迹面积 | 说明 |
 |---|---|---|---|
-| 128（原版上限） | 8 | (2·8+1)² = **289** chunk | 只够约 256 格跨度；原版机制下超过 128 格就开始掉 piece |
-| **256（推荐）** | **16** | (2·16+1)² = **1089** chunk（覆盖 512×512 格） | **绝大多数巨型结构（长道路、大城堡、地牢）用这个**，代价可控 |
-| 512（上限） | 32 | (2·32+1)² = **4225** chunk | ⚠️ **会明显影响性能**，只在确实需要时用 |
+| 128（原版上限） | 8 | (2·8+1)² = **289** chunk | 只够约 256 格跨度；**原版机制**下超过 128 格就开始掉 piece（本库有 per-chunk，不受此限） |
+| **256（上限，也推荐）** | **16** | (2·16+1)² = **1089** chunk（覆盖 512×512 格） | **绝大多数巨型结构（长道路、大城堡、地牢）用这个**，代价可控 |
 
-**为什么 512 会变慢 —— 这个参数不是惰性的。** 它和"结构方块上限"那类"允许但不执行"的阈值完全不同，它直接决定真实工作量：
+**为什么上限是 256 而不是 512。** 原版只能到 128 的根因是"邻居结构靠 references 传播，那个半径硬编码 8 chunk"——
+**这个根因已经由 per-chunk 放置彻底解决**（见 §9.1 与 `HANDOFF.md` §11），所以"抬高上限"能拿到的收益
+per-chunk 已经拿到了；再往上抬只是徒增最坏开销：
 
 1. **足迹面积 ∝ r²**：足迹内**每一个** chunk 都会走一次我们的 `findGenerationPoint`（缓存命中 + 按 chunk 索引取片）。
-   256 → 512 就是 **4 倍**（1089 → 4225 个 chunk）。
+   256 → 512 就是 **4 倍**（1089 → 4225 个 chunk）。上限钉在 256，最坏足迹就被钉在 1089。
 2. **jigsaw 展开盒变大**：`JigsawPlacement` 的候选搜索空间随半径增长。好在**每个 cell 只展开一次**（有布局缓存），
    所以这是"每个结构一次"的成本，不是每 chunk 成本。
 3. **布局本身更大**：piece 更多 → 缓存里每份布局更占内存（缓存有 256 条上限，超限整体清空）。
-4. **`spacing` 被迫变大**：`footprint_chunks * 2 < spacing` 是硬校验 ⇒ 512 需要 `spacing > 64` chunk（≈1040 格），
+4. **`spacing` 被迫变大**：`footprint_chunks * 2 < spacing` 是硬校验 ⇒ 256 需要 `spacing > 32` chunk（≈520 格），
    即"巨型结构必须稀疏"。用 `ALGridProfile.forRadius(...)` 时会在**构造期**直接抛异常并告诉你需要多大 `spacing`。
 
 常用配置参考：
 
 ```java
 ALGridProfile.forRadius(256, 64,  10387312)   // 推荐：footprint=16，要求 spacing > 32 → 取 64 很宽松
-ALGridProfile.forRadius(512, 128, 10387312)   // 激进：footprint=32，要求 spacing > 64 → 取 128
+ALGridProfile.forRadius(128, 32,  10387312)   // 小结构：footprint=8，要求 spacing > 16
 ```
 
-**结论**：**按 256 设计**；只有确实需要跨度超过 512 格的整体结构时才上 512，并接受"玩家走进它时，那一片区域的 chunk 生成都会更慢"。
+**结论**：**按 256 设计**。真需要跨度超过 512 格的整体结构时，正确做法是**拆成多个相邻的结构**
+（per-chunk 已经保证每个都能完整生成），而不是去抬这个上限。
 
 > 两个"不会增加"的成本，可以放心：**客户端零成本**（结构数据不发给客户端）；也**不会级联生成远处 chunk**
 > （per-chunk 只在你实际加载的 chunk 上付费，而不是像"放大 references 半径"那样让全世界每个 chunk 都多扫邻居）。

@@ -55,6 +55,8 @@ public record ALGridProfile(
                                             .optionalFieldOf("spread_type", RandomSpreadType.LINEAR)
                                             .forGetter(ALGridProfile::spreadType),
                                     ExtraCodecs.NON_NEGATIVE_INT.fieldOf("salt").forGetter(ALGridProfile::salt),
+                                    // 仅作上界保护（正常取值 = ceil(max_distance_from_center / 16) ≤ 16）；
+                                    // 真正的约束是 validate() 里的 footprint_chunks * 2 < spacing
                                     Codec.intRange(1, 512).fieldOf("footprint_chunks").forGetter(ALGridProfile::footprintChunks))
                             .apply(instance, ALGridProfile::new))
             .validate(ALGridProfile::validate);

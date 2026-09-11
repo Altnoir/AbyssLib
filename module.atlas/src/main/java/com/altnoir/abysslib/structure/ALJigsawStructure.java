@@ -80,7 +80,7 @@ public class ALJigsawStructure extends Structure {
                             HeightProvider.CODEC.fieldOf("start_height").forGetter(s -> s.startHeight),
                             Codec.BOOL.fieldOf("use_expansion_hack").forGetter(s -> s.useExpansionHack),
                             Heightmap.Types.CODEC.optionalFieldOf("project_start_to_heightmap").forGetter(s -> s.projectStartToHeightmap),
-                            Codec.intRange(1, 512).fieldOf("max_distance_from_center").forGetter(s -> s.maxDistanceFromCenter),
+                            Codec.intRange(1, ALStructureLimits.JIGSAW_MAX_DISTANCE_FROM_CENTER).fieldOf("max_distance_from_center").forGetter(s -> s.maxDistanceFromCenter),
                             Codec.list(PoolAliasBinding.CODEC).optionalFieldOf("pool_aliases", List.of()).forGetter(s -> s.poolAliases),
                             DimensionPadding.CODEC
                                     .optionalFieldOf("dimension_padding", JigsawStructure.DEFAULT_DIMENSION_PADDING)
