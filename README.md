@@ -1,14 +1,19 @@
 # AbyssLib
 
-Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · mod id `abysslib` · 包名 `com.altnoir.abysslib` · 许可 MIT
+Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · 包名 `com.altnoir.abysslib` · 许可 MIT
 
-本库把两套常用基础设施**源码级内置**，消费方装上 `abysslib` 一个模组即可，**不需要**再单独装 Registrate / Athena：
+本库是**模块化**的：三个功能模块各自是一个可单独安装的模组，另有一个聚合包把三者装在一起。
 
-| 内置内容 | 是什么 | 详见 |
-|---|---|---|
-| **`Reginth`**（注册框架） | fork 自 Registrate `MC1.21-1.3.0+67`，改命名空间；**额外提供分区式创造栏** | [§2](#2-注册框架-reginth) |
-| **内置模型加载器** | 移植自 Athena（CTM / 拼接 / 柱状等 8 种动态模型）+ 两套发光方案 + datagen | [§3](#3-内置模型加载器) |
+| 模块 | 坐标（group `com.altnoir.abysslib`） | modid | 自有命名空间 | 内容 | 详见 |
+|---|---|---|---|---|---|
+| **AbyssLib**（聚合） | `AbyssLib` | `abysslib` | — | 内嵌下面三个模块的 jar，**装这一个就等于装全部** | [§0.1](#01-装哪个-jar) |
+| **AbyssLib-Reginth** | `AbyssLib-Reginth` | `abysslib_reginth` | — | 注册框架 `Reginth`（fork 自 Registrate）+ 分区式创造栏 | [§2](#2-注册框架-reginth) · [§4](#4-分区式创造栏) |
+| **AbyssLib-ReLink** | `AbyssLib-ReLink` | `abysslib_relink` | **`relink:`** | 贴图材质链接：CTM / 动态模型 / 两套发光（移植自 Athena，**并兼容 `athena:` 旧写法**） | [§3](#3-内置模型加载器) |
+| **AbyssLib-Atlas** | `AbyssLib-Atlas` | `abysslib_atlas` | **`atlas:`** | 结构扩展：放宽原版上限 + per-chunk 放置 + `atlas:jigsaw` | [§9](#9-原版结构扩展per-chunk-放置与-atlasjigsaw) |
 
+> **命名空间 ≠ modid**：modid（`abysslib_relink`）只用于模组加载与依赖声明；
+> 资源包/数据包看到的是**命名空间**（`relink:` / `atlas:`）。
+> ReLink 与 Atlas 各自 jarJar 内嵌 Reginth，因此**三个模块都能单独安装**。
 > 需要 **Simple Bedrock Model / mae** 的模组请自行声明（jitpack 坐标 + 各自 jarJar / compileOnly），本库不提供。
 
 ---
@@ -16,6 +21,7 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · mod id
 ## 目录
 
 - [0. 快速开始](#0-快速开始)
+  - [0.1 装哪个 jar](#01-装哪个-jar)
 - [1. 分层与构建](#1-分层与构建)
 - [2. 注册框架 Reginth](#2-注册框架-reginth)
   - [2.1 建立实例](#21-建立实例)
@@ -27,6 +33,7 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · mod id
   - [3.3 发光方案 A：整模型满亮](#33-发光方案-a整模型满亮)
   - [3.4 发光方案 B：OptiFine 式叠加层](#34-发光方案-boptifine-式叠加层)
   - [3.5 用 datagen 生成定义](#35-用-datagen-生成定义推荐做法)
+  - [3.6 兼容上游 Athena 写法](#36-兼容上游-athena-写法)
 - [4. 分区式创造栏](#4-分区式创造栏)
   - [4.1 建标签页与分区](#41-建标签页与分区)
   - [4.2 横幅样式](#42-横幅样式albannerstyle)
@@ -34,7 +41,7 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · mod id
 - [6. 迁移指南](#6-迁移指南)
 - [7. 排错](#7-排错)
 - [8. 分支与许可](#8-分支与许可)
-- [9. 原版结构扩展（per-chunk 放置与 abysslib:jigsaw）](#9-原版结构扩展per-chunk-放置与-abysslibjigsaw)
+- [9. 原版结构扩展（per-chunk 放置与 atlas:jigsaw）](#9-原版结构扩展per-chunk-放置与-atlasjigsaw)
   - [9.1 三个新增的类型](#91-三个新增的类型)
   - [9.2 用 datagen 生成（推荐，走 reginth）](#92-用-datagen-生成推荐走-reginth)
   - [9.3 手写 JSON 的等价形式](#93-手写-json-的等价形式)
@@ -53,21 +60,36 @@ repositories {
 }
 
 dependencies {
-    // Reginth 与模型加载器都在这一份 jar 里，无需声明任何其它前置依赖
-    implementation("com.altnoir.abysslib:AbyssLib:1.4.0")
+    // 全套（聚合包）：注册框架 + 模型加载器 + 结构扩展都在这一份里
+    implementation("com.altnoir.abysslib:AbyssLib:2.0.0")
+
+    // 或按需只引某一个功能模块（各自 jarJar 内嵌 Reginth，可单独安装）：
+    // implementation("com.altnoir.abysslib:AbyssLib-Reginth:2.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-ReLink:2.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-Atlas:2.0.0")
 }
 ```
 
-**`neoforge.mods.toml`**：
+### 0.1 装哪个 jar
+
+| 你的需求 | 依赖坐标 | 运行时需要的 mod |
+|---|---|---|
+| 全套功能 | `AbyssLib` | 只装 `AbyssLib`（三个模块已内嵌） |
+| 只要注册框架 / 分区创造栏 | `AbyssLib-Reginth` | `AbyssLib-Reginth` |
+| 只要 CTM / 动态模型 / 发光 | `AbyssLib-ReLink` | `AbyssLib-ReLink`（内嵌 Reginth） |
+| 只要结构扩展 | `AbyssLib-Atlas` | `AbyssLib-Atlas`（内嵌 Reginth） |
+
+**`neoforge.mods.toml`**：装聚合包装 `abysslib`；只装单个模块时把 `modId` 换成对应模块的 modid。
 
 ```toml
 [[dependencies.你的modid]]
-modId = "abysslib"
+modId = "abysslib"          # 或用 abysslib_reginth / abysslib_relink / abysslib_atlas
 type = "required"
-versionRange = "[1.0,)"
+versionRange = "[2.0,)"
 ordering = "AFTER"
 side = "BOTH"
 ```
+
 
 **模组入口**：
 
@@ -105,27 +127,41 @@ public final class MyBlocks {
 
 ## 1. 分层与构建
 
-**代码结构**（`src/main/java/com/altnoir/abysslib/`）：
+**仓库结构**：一个 Gradle 多项目构建，四个子项目 = 四个模组（每个子项目产出自己的 jar 与 Maven 坐标）。
 
-| 位置 | 内容 |
-|---|---|
-| `reginth/` | 内置注册框架（搬运自 Registrate）；`Reginth` / `AbstractReginth` / `builders/` / `providers/` / `util/` |
-| `reginth/builders/ReginthBlockBuilder`<br>`reginth/builders/ReginthItemBuilder` | **本库新增**（上游没有）：在纯上游 builder 之上加了"默认生成 blockstate/loot/lang"与"创造栏分区"，由 `Reginth.block()/item()` 返回 |
-| `creative/` | 分区式创造栏：`ALCreativeTabSection` / `ALSectionedCreativeModeTab` / `ALBannerStyle` |
-| `model/` | 内置模型加载器（全部 `AL*` 前缀） |
-| `datagen/` | `ALModelDefinitionProvider` / `ALModelDefinition` |
-| `client/` | `ALClientConfig`（发光叠加层配置）、`AbyssLibClient`（客户端接线入口） |
-| `mixin/` | `ModelManagerMixin`、`ModelBakeryMixin`（仅 client 段） |
+```
+AbyssLib/
+├── settings.gradle          # include 四个 module.<name> 并把项目名改成 artifactId
+├── build.gradle             # 各子项目共享的构建约定（编码、mods.toml 展开、许可打包、发布）
+├── module.reginth/          # AbyssLib-Reginth  (abysslib_reginth)
+├── module.relink/           # AbyssLib-ReLink   (abysslib_relink)  命名空间 relink:
+├── module.atlas/            # AbyssLib-Atlas    (abysslib_atlas)   命名空间 atlas:
+└── module.main/             # AbyssLib（聚合）   (abysslib)
+```
+
+**代码分布**（包名统一 `com.altnoir.abysslib.**`）：
+
+| 模块 | 源码 | 说明 |
+|---|---|---|
+| **Reginth** | `reginth/`、`creative/`、`client/creative/` | 注册框架（搬运自 Registrate，类型名不改以便日后与上游 diff）；`Reginth` / `AbstractReginth` / `builders/` / `providers/` / `util/`。`ReginthBlockBuilder` / `ReginthItemBuilder` 是**本库新增**（上游没有） |
+| **ReLink** | `model/`、`datagen/`、`mixin/model/`、`client/ALClientConfig` | 模型加载器（全部 `AL*` 前缀）+ 发光叠加层配置 + 定义 datagen。入口类 `AbyssLibReLink`（`@Mod(dist = CLIENT)`） |
+| **Atlas** | `structure/`、`mixin/structure/` | 结构放宽自检 + `atlas:per_chunk` / `atlas:grid_profile` / `atlas:jigsaw`。入口类 `AbyssLibAtlas`（双端） |
+| **Main** | `AbyssLib.java` | 聚合模块：**无业务代码**，只 `jarJar` 内嵌三个模块，并保留消费方在用的门面工具（`AbyssLib.modloc` 等） |
 
 **构建与发布**：
 
 ```bash
-./gradlew build      # 产物在 build/libs/
-./gradlew publish    # 发布到 repo/（本地仓库），坐标为 com.altnoir.abysslib:AbyssLib:<版本>
+./gradlew build      # 四个 jar 都在各自 module.*/build/libs/
+./gradlew publish    # 四个坐标一起发布到 repo/
 ```
 
-**客户端边界**：分区横幅渲染与模型加载器都在 `AbyssLibClient`（`@Mod(dist = CLIENT)`）里初始化，
-**专用服务端不会加载这些类**；mixin 配置 `abysslib.mixins.json` 只有 `client` 段。
+> 子模块之间：ReLink / Atlas 各自 `jarJar` 内嵌 Reginth（因为它们的 datagen 助手在**方法签名**里
+> 用了 Reginth 的 `BlockEntry` / `AbstractReginth`），聚合包再内嵌全部三个。
+
+**客户端边界**：ReLink 与 Reginth 的客户端部分都是 `@Mod(value = ..., dist = Dist.CLIENT)`，
+**专用服务端不会加载这些类**。mixin 分两份：`abysslib_relink.mixins.json`（仅 `client` 段）、
+`abysslib_atlas.mixins.json`（`mixins` 4 条 + `client` 2 条）。
+
 
 ---
 
@@ -203,16 +239,19 @@ public static final EntityEntry<MyEntity> MY_ENTITY = REGINTH
 **已源码级并入本库**：消费方可以直接写连接纹理（CTM）/ 拼接 / 柱状等动态模型，
 **无需安装 Athena 模组，也无需自行打包**。上游来源与许可见 [§8 分支与许可](#8-分支与许可)。
 
-**命名统一**：类名（`AL*`）、包名（`com.altnoir.abysslib.model.**`）、资源 id 都已改为 `abysslib`。
-下文出现的 `athena:*` / `earth.terrarium.athena` 一律指**上游**写法，仅用于署名与迁移对照。
+**命名统一**：类名（`AL*`）、包名（`com.altnoir.abysslib.model.**`）、资源 id 都用本库自己的命名空间 **`relink`**
+（声明键 `relink:loader`、类型 `relink:ctm`、定义目录 `assets/<ns>/relink/`）。
+下文出现的 `athena:*` / `earth.terrarium.athena` 一律指**上游**写法。
 
-> **铁律**：加载器由本库唯一提供。**不要**再安装上游 Athena、也不要自行 jarJar 它。
-> 两套并存不会崩，但各自只认自己的定义（本库 id 是 `abysslib:model`、目录是 `assets/<ns>/abysslib/`），
-> 会出现"模型莫名不生效"的隐性故障。
+> **上游 Athena 写法照样能跑**：本库带兼容层，会一并认 `athena:loader` / `athena:ctm` /
+> `assets/<ns>/athena/` / `"loader": "athena:athena"`，既有资源**不改一行**也能用。见 [§3.6](#36-兼容上游-athena-写法)。
+
+> **不要**再安装上游 Athena 模组：本库已提供完整实现，且两者会抢同一个几何加载器 id（`athena:athena`）。
+> 检测到上游在场时本库会**自动关闭** `athena:*` 兼容层以免冲突（见 [§3.6](#36-兼容上游-athena-写法)）。
 
 ### 3.1 三种摆放方式
 
-定义要声明**模型类型** `"abysslib:loader"`（如 `"abysslib:ctm"`），有三种等效摆放位置：
+定义要声明**模型类型** `"relink:loader"`（如 `"relink:ctm"`），有三种等效摆放位置：
 
 **① blockstate 根**（上游 wiki 的规范写法，推荐照抄）
 
@@ -222,7 +261,7 @@ public static final EntityEntry<MyEntity> MY_ENTITY = REGINTH
 {
   "variants": { "": { "model": "minecraft:block/air" } },
 
-  "abysslib:loader": "abysslib:ctm",
+  "relink:loader": "relink:ctm",
   "ctm_textures": {
     "center":     "chipped:block/amethyst_block/ctm/cut_amethyst_block_column_ctm/3",
     "empty":      "chipped:block/amethyst_block/ctm/cut_amethyst_block_column_ctm/0",
@@ -236,18 +275,18 @@ public static final EntityEntry<MyEntity> MY_ENTITY = REGINTH
 `variants` 里的 `model` 只是占位（会被本库模型替换），wiki 统一写 `minecraft:block/air`。
 
 **② 模型文件**（wiki 未收录）：把上面那个对象放进 `assets/<ns>/models/**.json`，
-并补一个 `"loader": "abysslib:model"`，blockstate 里以**字符串**引用该模型。
+并补一个 `"loader": "relink:model"`，blockstate 里以**字符串**引用该模型。
 
 ```json
 {
-  "loader": "abysslib:model",
-  "abysslib:loader": "abysslib:ctm",
+  "loader": "relink:model",
+  "relink:loader": "relink:ctm",
   "ctm_textures": { "center": "…", "empty": "…", "horizontal": "…", "vertical": "…", "particle": "…" }
 }
 ```
 
 **③ 定义目录**（datagen 默认产出）：不带 `loader`，把该对象放到
-`assets/<ns>/abysslib/<方块注册名>.json`。运行时优先读它。
+`assets/<ns>/relink/<方块注册名>.json`。运行时优先读它。
 
 > ⚠️ **1.21.1 原版限制**：blockstate 的 `variants.*.model` **只能写字符串**。写"内联模型对象"会在加载时报
 > `Expected model to be a string, was an object`（实测确认）。需要 `"loader"` 的写法必须放进**模型文件**。
@@ -267,46 +306,46 @@ public static final EntityEntry<MyEntity> MY_ENTITY = REGINTH
 
 | 类型 | 本库标识符 | 用途 | `ctm_textures` 键 |
 |---|---|---|---|
-| Full Cube CTM | `abysslib:ctm` | 整面连接纹理 | `center` / `empty` / `horizontal` / `vertical` / `particle` |
-| Carpet CTM | `abysslib:carpet_ctm` | 地毯 / 薄板连接 | 同上五项 |
-| Pane CTM | `abysslib:pane_ctm` | 玻璃板连接（含竖向剔除） | 同上五项 |
-| Giant / Mural | `abysslib:giant`（别名 `abysslib:mural`） | 多格拼接大图 | `"1"`…`"width*height"` + `particle`，另需 `width` / `height` |
-| Pillar | `abysslib:pillar` | 带 `AXIS` 属性的柱 | `self` / `top` / `center` / `bottom` / `particle` |
-| Limited Pillar | `abysslib:limited_pillar` | 仅竖向的柱 | 同上五项 |
-| Pane Pillar | `abysslib:pane_pillar` | 玻璃板柱 | 同上五项（另读 `edge` / `side_edge`） |
+| Full Cube CTM | `relink:ctm` | 整面连接纹理 | `center` / `empty` / `horizontal` / `vertical` / `particle` |
+| Carpet CTM | `relink:carpet_ctm` | 地毯 / 薄板连接 | 同上五项 |
+| Pane CTM | `relink:pane_ctm` | 玻璃板连接（含竖向剔除） | 同上五项 |
+| Giant / Mural | `relink:giant`（别名 `relink:mural`） | 多格拼接大图 | `"1"`…`"width*height"` + `particle`，另需 `width` / `height` |
+| Pillar | `relink:pillar` | 带 `AXIS` 属性的柱 | `self` / `top` / `center` / `bottom` / `particle` |
+| Limited Pillar | `relink:limited_pillar` | 仅竖向的柱 | 同上五项 |
+| Pane Pillar | `relink:pane_pillar` | 玻璃板柱 | 同上五项（另读 `edge` / `side_edge`） |
 
 > 上游 wiki "Mural" 页给的标识符其实是 `athena:giant`（不是 `mural`）；本库两者都注册，与上游一致。
-> `abysslib:ctm` 还额外支持"按方向分别给贴图 + `default` 回退"的写法（wiki 未记录）。
+> `relink:ctm` 还额外支持"按方向分别给贴图 + `default` 回退"的写法（wiki 未记录）。
 
 > **属性键对所有内置类型都生效**：上游只有 `athena:ctm` 解析 `tint` / `render_type`，
 > 本库统一套了属性装饰器，因此 `carpet_ctm` / `pane_ctm` / `giant` / `pillar` / `limited_pillar` / `pane_pillar`
-> 也能写 `render_type` / `tint` / `abysslib:emissive`（例如玻璃板 CTM 需要 `"render_type": "translucent"`）。
+> 也能写 `render_type` / `tint` / `relink:emissive`（例如玻璃板 CTM 需要 `"render_type": "translucent"`）。
 
 ### 3.3 发光方案 A：整模型满亮
 
 两种写法，效果相同——所有面**强制 15/15 光照并关闭 AO 与方向性明暗**，
 于是不受环境光照影响、贴图什么颜色就显示什么颜色，暗处看起来就是发光。
 
-**① 让原版/已有模型直接发亮**（最省事，不需要任何贴图字段）：blockstate 里**只写** `abysslib:emissive`
+**① 让原版/已有模型直接发亮**（最省事，不需要任何贴图字段）：blockstate 里**只写** `relink:emissive`
 
 ```json
 {
   "variants": { "": { "model": "minecraft:block/stone" } },
-  "abysslib:emissive": true
+  "relink:emissive": true
 }
 ```
 
-不写 `abysslib:loader` 时本库**不替换模型**：保留 `variants` 指向的原版模型（石头、楼梯、台阶，或你自己的模型），
+不写 `relink:loader` 时本库**不替换模型**：保留 `variants` 指向的原版模型（石头、楼梯、台阶，或你自己的模型），
 只把每个面**复制一份**并写满光照——形状、贴图、`tintindex` / 生物群系染色全部照旧。
-该键也可写进 `assets/<ns>/abysslib/<方块>.json` 定义文件（同样不需要 `abysslib:loader`）。
+该键也可写进 `assets/<ns>/relink/<方块>.json` 定义文件（同样不需要 `relink:loader`）。
 
-**② 本库模型 + 发光**：与 `abysslib:loader` 同级写（三种摆放方式都适用）
+**② 本库模型 + 发光**：与 `relink:loader` 同级写（三种摆放方式都适用）
 
 ```json
 {
   "variants": { "": { "model": "minecraft:block/stone" } },
-  "abysslib:loader": "abysslib:ctm",
-  "abysslib:emissive": true,
+  "relink:loader": "relink:ctm",
+  "relink:emissive": true,
   "ctm_textures": { "center": "…", "empty": "…", "horizontal": "…", "vertical": "…", "particle": "…" }
 }
 ```
@@ -328,7 +367,7 @@ public static final EntityEntry<MyEntity> MY_ENTITY = REGINTH
 
 想复刻 OptiFine "画一张 `iron_ore_e.png` 就发光"的体验时用这个（**默认关闭**）。
 
-**1) 配置** `config/abysslib-client.toml`（游戏内 **模组列表 → AbyssLib → Config** 也能改）：
+**1) 配置** `config/abysslib_relink-client.toml`（游戏内 **模组列表 → AbyssLib → Config** 也能改）：
 
 ```toml
 emissiveLayer = false        # 是否启用发光叠加层
@@ -353,15 +392,15 @@ emissiveExclude = []         # 不应用叠加层的贴图 / 命名空间前缀�
 - 叠加贴图的 alpha 参与混合（半透明像素 = 半亮），可做柔光边缘；
 - 基贴图 quad 完全不动（叠加层是**副本**），不影响共用同一模型/贴图的其它方块；
 - **只对方块生效**（物品 / 生物 / 方块实体暂不支持）；
-- 与 §3.3 的 `abysslib:emissive` 互不冲突，可叠加。
+- 与 §3.3 的 `relink:emissive` 互不冲突，可叠加。
 
 ### 3.5 用 datagen 生成定义（推荐做法）
 
-`ALModelDefinitionProvider` 生成的是**定义目录**形式（`assets/<modid>/abysslib/<方块>.json`），
+`ALModelDefinitionProvider` 生成的是**定义目录**形式（`assets/<modid>/relink/<方块>.json`），
 **不改写 blockstate**，因此可以和你现有的 `RegistrateBlockstateProvider`（如 PoopSky 的 `BlockStateGen`）
 **共存、互不覆盖**。
 
-> 结构 / 世界生成（`abysslib:jigsaw`、`abysslib:per_chunk`、`abysslib:grid_profile`）的 datagen 走**另一条通道**
+> 结构 / 世界生成（`atlas:jigsaw`、`atlas:per_chunk`、`atlas:grid_profile`）的 datagen 走**另一条通道**
 > （reginth 的 `getDataGenInitializer()`），见 [§9](#9-原版结构扩展per-chunk-放置与-abysslibjigsaw)。本节只讲**模型定义**。
 
 ```java
@@ -401,9 +440,9 @@ generators.addProvider(event.includeClient(), new CtmModelGen(packOutput, existi
 
 | 入口 | 生成类型 | 必填字段（缺了 datagen 直接抛错） |
 |---|---|---|
-| `ctm(block)` | `abysslib:ctm` | particle / center / empty / vertical / horizontal |
-| `carpetCtm(block)` | `abysslib:carpet_ctm` | 同上五张 |
-| `paneCtm(block)` | `abysslib:pane_ctm` | 同上五张（可选 `paneEdges(edge, sideEdge)`） |
+| `ctm(block)` | `relink:ctm` | particle / center / empty / vertical / horizontal |
+| `carpetCtm(block)` | `relink:carpet_ctm` | 同上五张 |
+| `paneCtm(block)` | `relink:pane_ctm` | 同上五张（可选 `paneEdges(edge, sideEdge)`） |
 | `giant(block)` / `mural(block)` | 多格拼接 | `size(w,h)` + `"1".."w*h"` + particle |
 | `pillar(block)` / `limitedPillar(block)` / `panePillar(block)` | 柱类 | particle / self / top / center / bottom |
 
@@ -412,15 +451,40 @@ generators.addProvider(event.includeClient(), new CtmModelGen(packOutput, existi
 `emissive()`、`renderType("cutout"|"translucent"|…)`、`tint(0)` / `tint(r,g,b,a)`、
 `property(key, json)`（逃生口，例如 `connect_to` 条件树）、`save()`。
 
-- 生成路径 `assets/<你的modid>/abysslib/<方块注册名>.json`，与手写文件**完全等价**（运行时优先读它）；
+- 生成路径 `assets/<你的modid>/relink/<方块注册名>.json`，与手写文件**完全等价**（运行时优先读它）；
 - 生成时检查引用到的贴图是否存在，缺图汇总成一条 WARN（**不阻断**，因为贴图也可能来自资源包/其它模组）；
 - 同一个方块重复声明会 WARN，并以最后一次为准。
+
+### 3.6 兼容上游 Athena 写法
+
+本库的加载器移植自 [Athena](https://github.com/terrarium-earth/Athena)，但把命名空间换成了 `relink`。
+为了**让既有 Athena 格式资源不改一行就能用**，本库默认启用兼容层，额外认这些上游写法：
+
+| 上游写法 | 兼容方式 |
+|---|---|
+| `"athena:loader": "athena:ctm"` | 读取 `relink:loader` 时会回退读 `athena:loader` |
+| `athena:ctm` / `carpet_ctm` / `pane_ctm` / `giant` / `mural` / `pillar` / `limited_pillar` / `pane_pillar` | 同名注册一份 `athena:` 别名（上游的 8 个类型与本库完全一致） |
+| `"loader": "athena:athena"` | 几何加载器 id 也注册了 `athena:athena` 别名 |
+| 定义目录 `assets/<ns>/athena/**.json` | 一并扫描（同名条目以 `relink/` 的为准） |
+| `athena:emissive` | **不兼容** —— 上游没有这个键，整模型发光是本库扩展 |
+
+**与上游 Athena 共存**：上游注册的几何加载器 id 也是 `athena:athena`，两边同时注册会冲突。
+因此本库用 `ModList.get().isLoaded("athena")` 判定：**检测到上游已加载就整体关闭兼容层**，
+那些资源交给上游处理，并在日志里说明：
+
+```
+AbyssLib/ReLink: 未检测到上游 Athena -> 启用 athena:* 兼容层（Athena 格式的旧资源无需改写）
+AbyssLib/ReLink: 检测到上游 Athena 已加载 -> 已禁用 athena:* 兼容层，athena 格式资源交给上游处理
+```
+
+兼容是**单向**的：本库认 `athena:`，Athena 不认 `relink:`。
+
 
 ---
 
 ## 4. 分区式创造栏
 
-给创造栏标签页加"分区"（带标题横幅的分组）。**横幅渲染开箱即用**：随 `AbyssLibClient` 自动注册，
+给创造栏标签页加"分区"（带标题横幅的分组）。**横幅渲染开箱即用**：随 `AbyssLibReginth` 自动注册，
 消费方无需任何客户端代码。
 
 ### 4.1 建标签页与分区
@@ -547,9 +611,14 @@ repositories {
 }
 
 dependencies {
-    // Reginth 与模型加载器在同一份 jar 里；无需声明 Registrate / Reginth 等任何额外依赖，
+    // 全套：注册框架 + 模型加载器 + 结构扩展都在聚合包里；无需声明 Registrate / Reginth 等额外依赖，
     // 也不要再 jarJar 它们。
-    implementation("com.altnoir.abysslib:AbyssLib:1.4.0")
+    implementation("com.altnoir.abysslib:AbyssLib:2.0.0")
+
+    // 只想要某一个功能时，换成对应模块（见 §0.1）：
+    // implementation("com.altnoir.abysslib:AbyssLib-Reginth:2.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-ReLink:2.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-Atlas:2.0.0")
 }
 ```
 
@@ -569,29 +638,31 @@ dependencies {
 
 ## 6. 迁移指南
 
-### 6.1 从上游 Athena 资源迁移
+### 6.1 从上游 Athena 资源迁移（**2.0.0 起可选**）
 
-只需两步替换，**顺序不能反**：
+自 2.0.0 起本库自带 [§3.6](#36-兼容上游-athena-写法) 的兼容层，**既有 Athena 格式资源不改也能跑**，
+所以这一步是**可选**的——只是推荐改成本库命名空间，以免将来兼容层调整时被动。
 
 ```powershell
 Get-ChildItem -Recurse -Filter *.json | ForEach-Object {
   $t = Get-Content $_.FullName -Raw
-  $n = $t -replace 'athena:athena', 'abysslib:model'   # 先处理几何加载器 id（避免被下一步拆坏）
-  $n = $n -replace 'athena:', 'abysslib:'               # 键名 athena:loader + 类型值 athena:ctm 等
+  $n = $t -replace 'athena:athena', 'relink:model'   # 先处理几何加载器 id（避免被下一步拆坏）
+  $n = $n -replace 'athena:', 'relink:'              # 键名 athena:loader + 类型值 athena:ctm 等
   if ($t -ne $n) { Set-Content $_.FullName $n -Encoding utf8NoBOM }
 }
 ```
 
-目录 `assets/<ns>/athena/` 若有使用，改名为 `assets/<ns>/abysslib/` 即可（内容不变）。
+目录 `assets/<ns>/athena/` 若有使用，改名为 `assets/<ns>/relink/` 即可（内容不变）。
 
 | 上游（Athena） | 本库（AbyssLib） |
 |---|---|
-| 声明键 `"athena:loader"` | `"abysslib:loader"` |
-| 模型类型 `athena:ctm` / `athena:carpet_ctm` / `athena:pane_ctm` / `athena:giant` / `athena:pillar` / `athena:limited_pillar` / `athena:pane_pillar` | 同名换前缀：`abysslib:ctm` … |
-| 几何加载器 `"loader": "athena:athena"` | `"loader": "abysslib:model"` |
-| 定义目录 `assets/<ns>/athena/**.json` | `assets/<ns>/abysslib/**.json` |
+| 声明键 `"athena:loader"` | `"relink:loader"` |
+| 模型类型 `athena:ctm` / `athena:carpet_ctm` / `athena:pane_ctm` / `athena:giant` / `athena:mural` / `athena:pillar` / `athena:limited_pillar` / `athena:pane_pillar` | 同名换前缀：`relink:ctm` … |
+| 几何加载器 `"loader": "athena:athena"` | `"loader": "relink:model"` |
+| 定义目录 `assets/<ns>/athena/**.json` | `assets/<ns>/relink/**.json` |
 | **其余内容**（`variants`、`ctm_textures`、`width`、`height`、文件位置） | **保持不变** |
 | Java 包 `earth.terrarium.athena.**` | `com.altnoir.abysslib.model.**` |
+| `athena:emissive` | **不存在**（上游没有这个键，整模型发光是本库扩展，只有 `relink:emissive`） |
 
 ### 6.2 迁移到 Reginth（1.4.0 起，破坏性）
 
@@ -626,6 +697,67 @@ Get-ChildItem -Recurse src -Filter *.java | ForEach-Object {
 再把 `abysslib_version` 提到 `1.4.0`。注意 `Registrate*Provider` 这类**类名**也要跟着改成 `Reginth*Provider`
 （上面的脚本只处理 import 行，代码体里的类型引用需一并替换；`\bRegistrate` → `Reginth` 的词边界替换即可）。
 
+### 6.3 迁移到 2.0.0（模块化 + 命名空间改名，破坏性）
+
+2.0.0 做了三件事：**（1）拆成模块；（2）模型/结构两条功能的命名空间从 `abysslib:` 改名；
+（3）配置文件按 modid 重新命名。**
+
+**（1）依赖坐标**——聚合包坐标不变，消费方通常只需改版本号：
+
+```gradle
+implementation("com.altnoir.abysslib:AbyssLib:2.0.0")   // 原来是 1.4.x
+```
+
+`neoforge.mods.toml` 里装聚合包时 `modId = "abysslib"` **不用改**；只装单个模块才换成
+`abysslib_reginth` / `abysslib_relink` / `abysslib_atlas`。
+
+**（2）命名空间改名**（资源键、注册表 id、定义目录）——`abysslib:` 不再被读取：
+
+| 旧（≤1.4.x） | 新（2.0.0 起） |
+|---|---|
+| `"abysslib:loader"` | `"relink:loader"` |
+| `abysslib:ctm` / `carpet_ctm` / `pane_ctm` / `giant` / `mural` / `pillar` / `limited_pillar` / `pane_pillar` | 同名换前缀：`relink:*` |
+| `"loader": "abysslib:model"` | `"loader": "relink:model"` |
+| `"abysslib:emissive"` | `"relink:emissive"` |
+| 定义目录 `assets/<ns>/abysslib/**.json` | `assets/<ns>/relink/**.json` |
+| `abysslib:jigsaw` | `atlas:jigsaw` |
+| `abysslib:per_chunk` | `atlas:per_chunk` |
+| `abysslib:grid_profile` | `atlas:grid_profile` |
+| 数据包目录 `data/<包名>/abysslib/grid_profile/` | `data/<包名>/atlas/grid_profile/` |
+
+批量改写（**只动 JSON 键与 id，不动 Java 包名**）：
+
+```powershell
+Get-ChildItem -Recurse -Include *.json | ForEach-Object {
+  $t = Get-Content $_.FullName -Raw
+  $n = $t
+  foreach ($k in 'loader','emissive','model','ctm','carpet_ctm','pane_ctm','giant','mural','pillar','limited_pillar','pane_pillar') {
+    $n = $n -replace "abysslib:$k", "relink:$k"
+  }
+  foreach ($k in 'jigsaw','per_chunk','grid_profile') { $n = $n -replace "abysslib:$k", "atlas:$k" }
+  if ($t -ne $n) { Set-Content $_.FullName $n -Encoding utf8NoBOM }
+}
+# 定义目录改名
+Get-ChildItem -Recurse -Directory -Filter abysslib | Where-Object { $_.Parent.Name -eq 'assets' } |
+  ForEach-Object { Rename-Item $_.FullName -NewName 'relink' }
+```
+
+> 注意 [§6.1](#61-从上游-athena-资源迁移20-00-起可选)：**上游 Athena 写法（`athena:*`）不需要改**，
+> 兼容层照旧认。
+> 反过来，如果你的资源里写过 `relink:` 之前的老名字，那就按上表改。
+
+**（3）配置文件改名** —— 配置文件按 `modid` 命名，旧的 `config/abysslib-client.toml` 不再被读取：
+
+| 旧 | 新 |
+|---|---|
+| `config/abysslib-client.toml` | `config/abysslib_relink-client.toml` |
+
+（配置项本身没变：`emissiveLayer` / `emissiveSuffix` / `emissiveExclude`。
+把旧文件重命名过去即可；留着旧文件无害，只是不再生效。）
+
+**（4）其它不变**：`com.altnoir.abysslib.**` 包名、`Reginth` API、`abysslib:grid_profile` 之外的
+数据包注册表机制、`AbyssLib.modloc(...)` 等门面工具都不变。
+
 ---
 
 ## 7. 排错
@@ -633,44 +765,62 @@ Get-ChildItem -Recurse src -Filter *.java | ForEach-Object {
 **模型没被接管？** 把日志级别开到 DEBUG，接管时会打印：
 
 ```
-AbyssLib: replaced top-level model '<方块id>#<变体>' with model type abysslib:<类型>
+AbyssLib/ReLink: replaced top-level model '<方块id>#<变体>' with model type relink:<类型>
 ```
 
-没有这行说明 loader 声明没被找到——检查 `"abysslib:loader"` 键名、方块 id 与 blockstate 文件名是否对应。
+没有这行说明 loader 声明没被找到——检查 `"relink:loader"` 键名、方块 id 与 blockstate 文件名是否对应。
 （生产环境日志为 INFO，默认不打印。）
 
 **发光叠加层没生效？** DEBUG 下会打印：
 
 ```
-AbyssLib: emissive overlay enabled for '<blockstate>' (base=..., overlay=..., separatePass=...)
+AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=..., separatePass=...)
 ```
 
 没有这行说明基贴图没找到同后缀贴图——检查后缀、贴图路径/命名空间、是否被 `emissiveExclude` 排除。
+
+**结构扩展的自检**（Atlas 模块，INFO 级，启动时必打两条）：
+
+```
+[AbyssLib/Atlas] 原版结构限制放宽（mod 加载完成）-> jigsaw: distance=512, depth=128 [codec=OK, verifyRange=待运行时, ...]
+[AbyssLib/Atlas] 原版结构限制放宽（世界数据包加载完成）-> ... [codec=OK, verifyRange=OK, ...]
+```
+
+第二条里 `verifyRange=OK` 才算真的生效（第一条时数据包还没解析，显示"待运行时"是正常的）。
 
 **贴图变成灰度 / 纯色？** 本库模型是**自己生成面**的，不读原版模型 JSON 里的 `tintindex`：
 
 - 用**灰度贴图**的方块（`grass_block_top`、`oak_leaves`、红石线…）必须在定义里显式给颜色：
   `"tint": 0`（数字 = 原版 `BlockColor`/`ItemColor` 的 tint 索引，**生物群系染色走这条**）或
   `"tint": [r,g,b,a]`（固定色）。**不写 tint 就是贴图原样**，灰度贴图自然显示成灰度。
-- 同时开了 `"abysslib:emissive": true` 会更明显：不受光照、无方向明暗，看上去就是一张平的灰图。
+- 同时开了 `"relink:emissive": true` 会更明显：不受光照、无方向明暗，看上去就是一张平的灰图。
 
 **原版方块（草方块/泥土/石头…）被替换成奇怪贴图？** 先确认 `build/resources/main/assets/` 下有没有
-调试用的 `minecraft/**` 覆盖残留，然后重新 `gradlew build`。本库源码只含 `assets/abysslib/**`，
-**从不覆盖原版资源**（`jar` 任务也硬排除了 `assets/minecraft/**`）。
+调试用的 `minecraft/**` 覆盖残留，然后重新 `gradlew build`。本库源码只含 `assets/abysslib/**`
+（Reginth 的创造栏横幅）与 `assets/abysslib_relink/**`（ReLink 的配置译名），
+**从不覆盖原版资源**（各模块 `jar` 任务都硬排除了 `assets/minecraft/**`）。
 
-**专用服务端报客户端类加载？** 不应发生。分区横幅与模型加载器都在 `AbyssLibClient`
-（`@Mod(dist = CLIENT)`）里初始化，mixin 配置只有 `client` 段。
+**专用服务端报客户端类加载？** 不应发生。分区横幅在 `AbyssLibReginth`、模型加载器在 `AbyssLibReLink`
+（都是 `@Mod(dist = CLIENT)`）里初始化，ReLink 的 mixin 配置也只有 `client` 段。
 
 ---
 
-## 8. 分支与许可
+## 8. 分支、版本与许可
+
+**版本**：
+
+| 版本 | 变更 |
+|---|---|
+| 1.3.0 | 源码内置模型加载器（移植自 Athena），命名空间改为 `abysslib` |
+| 1.4.0 | 源码内置注册框架 `Reginth`（fork 自 Registrate），移除外部依赖与 jarJar（**破坏性**） |
+| **2.0.0** | **模块化**：拆成 `AbyssLib-Reginth` / `AbyssLib-ReLink` / `AbyssLib-Atlas` 三个**可单独安装**的模组 + 聚合包 `AbyssLib`；模型命名空间 `abysslib:` → **`relink:`**、结构命名空间 `abysslib:` → **`atlas:`**（**破坏性**，见 [§6.3](#63-迁移到-200模块化--命名空间改名破坏性)）；新增上游 Athena 写法兼容层（见 [§3.6](#36-兼容上游-athena-写法)） |
 
 **分支**（按 MC 线分开维护）：
 
 | 分支 / 目录 | 目标 | 关键差异 |
 |---|---|---|
-| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | 源码内置 `Reginth`（1.4.0 起）与模型加载器（1.3.0 起） |
-| `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | 仍以外部依赖方式使用 Registrate `MC26.1-1.5.7`；分区栏为 MIA-26.1 模型；**暂未内置模型加载器，也未内置注册框架** |
+| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | **模块化多项目**；源码内置 `Reginth`（1.4.0 起）与模型加载器（1.3.0 起）；命名空间 `relink:` / `atlas:`（2.0.0 起） |
+| `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | 仍是**单项目**；以外部依赖方式使用 Registrate `MC26.1-1.5.7`；分区栏为 MIA-26.1 模型；**暂未内置模型加载器，也未内置注册框架，尚未模块化** |
 
 **许可**：本库自身代码为 **MIT**，见 [`LICENSE`](LICENSE)（`Copyright (c) 2025 Altnoir`）。
 
@@ -683,7 +833,7 @@ AbyssLib: emissive overlay enabled for '<blockstate>' (base=..., overlay=..., se
 
 ---
 
-## 9. 原版结构扩展（per-chunk 放置与 abysslib:jigsaw）
+## 9. 原版结构扩展（per-chunk 放置与 atlas:jigsaw）
 
 面向"要生成**超过原版 128 格**的大结构"的消费方：长道路、巨型地牢、跨群系的连续结构。
 不覆盖任何原版文件，也不需要安装其它结构库。
@@ -695,13 +845,13 @@ AbyssLib: emissive overlay enabled for '<blockstate>' (base=..., overlay=..., se
 
 | 类型 | 标识符 | 作用 |
 |---|---|---|
-| `StructureType` | `abysslib:jigsaw` | 与原版 jigsaw 同形（字段一致，多一个 `grid_profile`），但**锚点与随机种子固定到结构中心**；并把 piece 切成"每个 chunk 只带自己那片"，从而让足迹内每个 chunk 各自落地 |
-| `StructurePlacementType` | `abysslib:per_chunk` | **逐 chunk 放置**：足迹范围内每个 chunk 都持有结构起点。原版只有中心 chunk 有起点，而相邻 chunk 靠 references 得知结构存在、那个半径是**硬编码 ±8 chunk = 128 格**（`MAX_TOTAL_STRUCTURE_RANGE = 128` 的来历），超出的 piece 不落块 |
-| 数据包注册表 | `abysslib:grid_profile` | 上述两者的**唯一参数来源**（`spacing` / `separation` / `spread_type` / `salt` / `footprint_chunks`）。placement 与结构都只引用同一个 id，因此"两边参数不一致导致结构碎裂"在结构上不可能发生 |
+| `StructureType` | `atlas:jigsaw` | 与原版 jigsaw 同形（字段一致，多一个 `grid_profile`），但**锚点与随机种子固定到结构中心**；并把 piece 切成"每个 chunk 只带自己那片"，从而让足迹内每个 chunk 各自落地 |
+| `StructurePlacementType` | `atlas:per_chunk` | **逐 chunk 放置**：足迹范围内每个 chunk 都持有结构起点。原版只有中心 chunk 有起点，而相邻 chunk 靠 references 得知结构存在、那个半径是**硬编码 ±8 chunk = 128 格**（`MAX_TOTAL_STRUCTURE_RANGE = 128` 的来历），超出的 piece 不落块 |
+| 数据包注册表 | `atlas:grid_profile` | 上述两者的**唯一参数来源**（`spacing` / `separation` / `spread_type` / `salt` / `footprint_chunks`）。placement 与结构都只引用同一个 id，因此"两边参数不一致导致结构碎裂"在结构上不可能发生 |
 
-> **必须成对使用**：`abysslib:jigsaw` 配原版 `random_spread` → 只有中心 chunk 有起点，远处 piece 依旧不落块；
-> `abysslib:per_chunk` 配原版 `minecraft:jigsaw` → 每个 chunk 各算一份布局（原版以当前 chunk 为锚点）→ 结构碎裂。
-> 另外 `abysslib:per_chunk` 继承自原版 `RandomSpreadStructurePlacement`，所以 `/locate structure` 正常工作。
+> **必须成对使用**：`atlas:jigsaw` 配原版 `random_spread` → 只有中心 chunk 有起点，远处 piece 依旧不落块；
+> `atlas:per_chunk` 配原版 `minecraft:jigsaw` → 每个 chunk 各算一份布局（原版以当前 chunk 为锚点）→ 结构碎裂。
+> 另外 `atlas:per_chunk` 继承自原版 `RandomSpreadStructurePlacement`，所以 `/locate structure` 正常工作。
 
 ### 9.2 用 datagen 生成（推荐，走 reginth）
 
@@ -766,7 +916,7 @@ public MyMod(IEventBus modBus, ModContainer container) {
 产物路径（`runData` 后，与手写文件完全等价）：
 
 ```
-src/generated/resources/data/<你的modid>/abysslib/grid_profile/road.json
+src/generated/resources/data/<你的modid>/atlas/grid_profile/road.json
 src/generated/resources/data/<你的modid>/worldgen/structure/road.json
 src/generated/resources/data/<你的modid>/worldgen/structure_set/roads.json
 ```
@@ -784,7 +934,7 @@ src/generated/resources/data/<你的modid>/worldgen/structure_set/roads.json
 #### 9.2.1 一键助手（可选，但省事）
 
 嫌上面四段样板啰嗦时用 `ALStructureDatagen`：它把 profile + 结构 + **配套 structure_set** 一次登记，
-并且 **structure_set 由 profile 自动派生**（同一 profile + `abysslib:per_chunk`），
+并且 **structure_set 由 profile 自动派生**（同一 profile + `atlas:per_chunk`），
 于是"两处 profile 必须一致"这件事**不可能写错**。
 
 ```java
@@ -810,7 +960,7 @@ public MyMod(IEventBus modBus, ModContainer container) {
 | `ALGridProfile.forRadius(maxDistance, spacing, salt)` | **自动派生 `footprint_chunks` = `ceil(半径 / 16)`**，并在**构造期**就校验 `spacing > separation` 与足迹是否重叠（抛 `IllegalArgumentException` 并给出建议值，比等数据包加载报错好定位） |
 | `ALStructureDatagen` | 三条注册收成一处；`jigsaw(...)` 顺带把 set 建好 → **profile 只写一次**，杜绝两边不一致；不想用它也完全可以（等价写法见上面 §9.2 与 §9.3） |
 
-> `ALStructureDatagen.structure(...)` 也需要 profile key（因为 `abysslib:jigsaw` 一定引用 profile），
+> `ALStructureDatagen.structure(...)` 也需要 profile key（因为 `atlas:jigsaw` 一定引用 profile），
 > 而工厂里拿到的 `Holder` 是 bootstrap 期间解析的 —— 见上面的 ⚠️。
 
 ### 9.3 手写 JSON 的等价形式
@@ -818,11 +968,11 @@ public MyMod(IEventBus modBus, ModContainer container) {
 不用 datagen 时，三条 JSON 直接手写即可（路径同上）：
 
 ```json
-// data/<ns>/abysslib/grid_profile/road.json
+// data/<ns>/atlas/grid_profile/road.json
 { "spacing": 64, "separation": 32, "spread_type": "linear", "salt": 10387312, "footprint_chunks": 8 }
 
 // data/<ns>/worldgen/structure/road.json
-{ "type": "abysslib:jigsaw", "grid_profile": "<ns>:road",
+{ "type": "atlas:jigsaw", "grid_profile": "<ns>:road",
   "start_pool": "<ns>:road/start", "size": 32, "max_distance_from_center": 128,
   "start_height": { "absolute": 0 }, "project_start_to_heightmap": "WORLD_SURFACE_WG",
   "use_expansion_hack": false, "terrain_adaptation": "none", "step": "surface_structures",
@@ -830,7 +980,7 @@ public MyMod(IEventBus modBus, ModContainer container) {
 
 // data/<ns>/worldgen/structure_set/roads.json
 { "structures": [ { "structure": "<ns>:road", "weight": 1 } ],
-  "placement": { "type": "abysslib:per_chunk", "grid_profile": "<ns>:road" } }
+  "placement": { "type": "atlas:per_chunk", "grid_profile": "<ns>:road" } }
 ```
 
 ### 9.4 字段与约束
@@ -845,11 +995,11 @@ public MyMod(IEventBus modBus, ModContainer container) {
 | `salt` | 与原版一致的盐，决定中心落在单元内的哪个位置 |
 | `footprint_chunks` | 结构中心到足迹边缘的 chunk 数 = `ceil(max_distance_from_center / 16)`；**必须满足 `footprint_chunks * 2 < spacing`**（否则相邻足迹重叠） |
 
-**`abysslib:jigsaw` 相对原版 `minecraft:jigsaw` 的差异**
+**`atlas:jigsaw` 相对原版 `minecraft:jigsaw` 的差异**
 
 | 字段 | 差异 |
 |---|---|
-| `grid_profile` | **新增且必填**（引用 `abysslib:grid_profile`） |
+| `grid_profile` | **新增且必填**（引用 `atlas:grid_profile`） |
 | `max_distance_from_center` | **上限 512**（原版 128）、**推荐 256** —— 取舍与代价见 §9.4.1。同时受 `footprint_chunks * 16` 约束，超出会在运行时打一条 WARN |
 | `size` | 上限 128（原版 20） |
 | 其余字段 | 与原版 jigsaw 完全一致（`start_pool` / `size` / `start_height` / `use_expansion_hack` / `project_start_to_heightmap` / `pool_aliases` / `dimension_padding` / `liquid_settings` / `biomes` / `step` / `terrain_adaptation` / `spawn_overrides`） |

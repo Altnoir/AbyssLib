@@ -1,0 +1,28 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+base {
+    archivesName = 'AbyssLib-ReLink'
+}
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    // ReLink 的模型定义 datagen 助手（ALModelDefinitionProvider#ctm）在**方法签名**里用了
+    // Reginth 的 BlockEntry，所以编译期必需；运行时随包内嵌（jarJar），保证单装本模块可用。
+    jarJar(api project(':AbyssLib-Reginth'))
+}

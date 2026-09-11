@@ -1,0 +1,28 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+base {
+    archivesName = 'AbyssLib-Atlas'
+}
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    // Atlas 的 datagen 助手（ALStructureDatagen#register）用了 Reginth 的 AbstractReginth /
+    // DataProviderInitializer，编译期必需；运行时随包内嵌（jarJar）。
+    jarJar(api project(':AbyssLib-Reginth'))
+}

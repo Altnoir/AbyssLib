@@ -9,3 +9,16 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+// 模块化：一个仓库、三个功能模组 + 一个聚合包。
+// 目录名用 module.<name>（点号），随后把 Gradle 项目名改成 Maven artifactId，
+// 这样 `project(':AbyssLib-ReLink')` 与发布坐标天然一致（照 AnvilLib 的做法）。
+include 'module.reginth'
+include 'module.relink'
+include 'module.atlas'
+include 'module.main'
+
+project(':module.reginth').name = 'AbyssLib-Reginth'
+project(':module.relink').name = 'AbyssLib-ReLink'
+project(':module.atlas').name = 'AbyssLib-Atlas'
+project(':module.main').name = 'AbyssLib'

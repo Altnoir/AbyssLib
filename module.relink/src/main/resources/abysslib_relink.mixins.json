@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.altnoir.abysslib.mixin.model",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ModelBakeryMixin",
+    "ModelManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

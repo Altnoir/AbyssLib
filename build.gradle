@@ -1,144 +1,83 @@
-import java.nio.charset.StandardCharsets
-
 plugins {
-    id 'idea'
-    id 'java-library'
-    id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.141'
+    // 版本在根 build.gradle 声明一次，子项目只引用 id
+    id 'net.neoforged.moddev' version '2.0.141' apply false
 }
 
-tasks.named('wrapper', Wrapper).configure {
-    distributionType = Wrapper.DistributionType.BIN
-}
+// ---------------------------------------------------------------------------
+// 所有子模块共享的构建约定。
+// 每个模块自己的 build.gradle 只写差异部分（mod_id / 依赖 / 是否有 run 配置）。
+// ---------------------------------------------------------------------------
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'idea'
 
-version = mod_version
-group = mod_group_id
+    group = mod_group_id
+    version = mod_version
 
-repositories {
-    mavenLocal()
-    maven { url = "https://mvn.devos.one/snapshots" } // Registrate
-}
-
-base {
-    archivesName = mod_id
-}
-
-// Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-
-neoForge {
-    // Specify the version of NeoForge to use.
-    version = project.neo_version
-
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
-
-    runs {
-        client {
-            client()
-            programArgument '--username'
-            programArgument 'Player####'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        data {
-            data()
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-        }
-
-        // applies to all the run configs above
-        configureEach {
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-            logLevel = org.slf4j.event.Level.DEBUG
-        }
-    }
-
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-    }
-}
-
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-// 防护：本库是纯代码前置库，不向发布产物里塞原版资源覆盖（assets/minecraft/**）。
-// 起因：本地调试用的 blockstate 覆盖曾残留在 build 输出中，导致原版方块（草方块/石头）被替换。
-// 如确实需要在库内覆盖原版资源，删掉本段即可。
-tasks.named('jar', Jar).configure {
-    exclude 'assets/minecraft/**'
-}
-
-dependencies {
-    // 注册框架（Registrate）已**源码级内置**为 com.altnoir.abysslib.reginth，不再依赖外部 Maven 坐标，
-    // 也不再需要 jarJar：类就在本模组 jar 里，天然单副本、无版本冲突。
-    // 说明：Simple Bedrock Model / mae 不由本库内置或暴露；
-    // 需要 SBM 的模组自行以 jitpack 坐标 + 本地 jarJar 提供（与 26.1 线策略一致）。
-}
-
-var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
-    // 模板过滤统一使用 UTF-8（expand 读写）
-    filteringCharset = 'UTF-8'
-    var replaceProperties = [
-            minecraft_version      : minecraft_version,
-            minecraft_version_range: minecraft_version_range,
-            neo_version            : neo_version,
-            neo_version_range      : neo_version_range,
-            loader_version_range   : loader_version_range,
-            mod_id                 : mod_id,
-            mod_name               : mod_name,
-            mod_license            : mod_license,
-            mod_version            : mod_version,
-            mod_authors            : mod_authors,
-            mod_description        : mod_description,
-    ]
-    inputs.properties replaceProperties
-    expand replaceProperties
-    from "src/main/templates"
-    into "build/generated/sources/modMetadata"
-}
-sourceSets.main.resources.srcDir generateModMetadata
-neoForge.ideSyncTask generateModMetadata
-
-// 发布到本地仓库，供 PoopSky / PoopSky-FilthDomain 等依赖本库的模组使用
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            from components.java
-        }
-    }
     repositories {
-        maven {
-            url = file("${project.projectDir}/repo")
+        mavenLocal()
+        mavenCentral()
+    }
+
+    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+    }
+
+    tasks.withType(ProcessResources).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+
+    // neoForge.mods.toml 的占位符展开 + 许可随分发一同打包。
+    // （MIT 要求再分发时保留版权与许可声明，LICENSE 会被复制进 META-INF/）
+    tasks.named('processResources', ProcessResources).configure {
+        var replaceProperties = [
+                minecraft_version      : minecraft_version,
+                minecraft_version_range: minecraft_version_range,
+                neo_version_range      : neo_version_range,
+                loader_version_range   : loader_version_range,
+                mod_id                 : mod_id,
+                mod_name               : mod_name,
+                mod_license            : mod_license,
+                mod_version            : mod_version,
+                mod_authors            : mod_authors,
+                mod_description        : mod_description,
+        ]
+        inputs.properties replaceProperties
+        filesMatching(['META-INF/neoforge.mods.toml']) {
+            expand replaceProperties
+        }
+        from(rootProject.file('LICENSE')) {
+            into 'META-INF'
         }
     }
-}
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-}
-
-tasks.withType(ProcessResources).configureEach {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-tasks.named('processResources', ProcessResources).configure {
-    from(project.file('LICENSE')) {
-        into 'META-INF'
+    // 防护：本库是纯代码前置库，不向发布产物里塞原版资源覆盖（assets/minecraft/**）。
+    // 起因：本地调试用的 blockstate 覆盖曾残留在 build 输出中，导致原版方块被替换。
+    tasks.named('jar', Jar).configure {
+        exclude 'assets/minecraft/**'
     }
-}
 
-idea {
-    module {
-        downloadSources = true
-        downloadJavadoc = true
+    // 发布到本地仓库，供 PoopSky / PoopSky-FilthDomain 等依赖本库的模组使用
+    publishing {
+        publications {
+            register('mavenJava', MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            maven {
+                url = rootProject.file('repo')
+            }
+        }
+    }
+
+    idea {
+        module {
+            downloadSources = true
+            downloadJavadoc = true
+        }
     }
 }
