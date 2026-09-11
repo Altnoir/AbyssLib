@@ -713,7 +713,7 @@ implementation("com.altnoir.abysslib:AbyssLib:1.0.0")   // 原来是 1.4.x
 
 **（2）命名空间改名**（资源键、注册表 id、定义目录）——`abysslib:` 不再被读取：
 
-| 旧（≤1.4.x） | 新（1.0.0 起） |
+| 旧（0.x 时代的旧编号，≤1.4.x） | 新（1.0.0 起） |
 |---|---|
 | `"abysslib:loader"` | `"relink:loader"` |
 | `abysslib:ctm` / `carpet_ctm` / `pane_ctm` / `giant` / `mural` / `pillar` / `limited_pillar` / `pane_pillar` | 同名换前缀：`relink:*` |
