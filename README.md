@@ -61,12 +61,12 @@ repositories {
 
 dependencies {
     // 全套（聚合包）：注册框架 + 模型加载器 + 结构扩展都在这一份里
-    implementation("com.altnoir.abysslib:AbyssLib:2.0.0")
+    implementation("com.altnoir.abysslib:AbyssLib:1.0.0")
 
     // 或按需只引某一个功能模块（各自 jarJar 内嵌 Reginth，可单独安装）：
-    // implementation("com.altnoir.abysslib:AbyssLib-Reginth:2.0.0")
-    // implementation("com.altnoir.abysslib:AbyssLib-ReLink:2.0.0")
-    // implementation("com.altnoir.abysslib:AbyssLib-Atlas:2.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-ReLink:1.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-Atlas:1.0.0")
 }
 ```
 
@@ -85,7 +85,7 @@ dependencies {
 [[dependencies.你的modid]]
 modId = "abysslib"          # 或用 abysslib_reginth / abysslib_relink / abysslib_atlas
 type = "required"
-versionRange = "[2.0,)"
+versionRange = "[1.0,)"
 ordering = "AFTER"
 side = "BOTH"
 ```
@@ -613,12 +613,12 @@ repositories {
 dependencies {
     // 全套：注册框架 + 模型加载器 + 结构扩展都在聚合包里；无需声明 Registrate / Reginth 等额外依赖，
     // 也不要再 jarJar 它们。
-    implementation("com.altnoir.abysslib:AbyssLib:2.0.0")
+    implementation("com.altnoir.abysslib:AbyssLib:1.0.0")
 
     // 只想要某一个功能时，换成对应模块（见 §0.1）：
-    // implementation("com.altnoir.abysslib:AbyssLib-Reginth:2.0.0")
-    // implementation("com.altnoir.abysslib:AbyssLib-ReLink:2.0.0")
-    // implementation("com.altnoir.abysslib:AbyssLib-Atlas:2.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-ReLink:1.0.0")
+    // implementation("com.altnoir.abysslib:AbyssLib-Atlas:1.0.0")
 }
 ```
 
@@ -638,9 +638,9 @@ dependencies {
 
 ## 6. 迁移指南
 
-### 6.1 从上游 Athena 资源迁移（**2.0.0 起可选**）
+### 6.1 从上游 Athena 资源迁移（**1.0.0 起可选**）
 
-自 2.0.0 起本库自带 [§3.6](#36-兼容上游-athena-写法) 的兼容层，**既有 Athena 格式资源不改也能跑**，
+自 1.0.0 起本库自带 [§3.6](#36-兼容上游-athena-写法) 的兼容层，**既有 Athena 格式资源不改也能跑**，
 所以这一步是**可选**的——只是推荐改成本库命名空间，以免将来兼容层调整时被动。
 
 ```powershell
@@ -697,15 +697,15 @@ Get-ChildItem -Recurse src -Filter *.java | ForEach-Object {
 再把 `abysslib_version` 提到 `1.4.0`。注意 `Registrate*Provider` 这类**类名**也要跟着改成 `Reginth*Provider`
 （上面的脚本只处理 import 行，代码体里的类型引用需一并替换；`\bRegistrate` → `Reginth` 的词边界替换即可）。
 
-### 6.3 迁移到 2.0.0（模块化 + 命名空间改名，破坏性）
+### 6.3 迁移到 1.0.0（模块化 + 命名空间改名，破坏性）
 
-2.0.0 做了三件事：**（1）拆成模块；（2）模型/结构两条功能的命名空间从 `abysslib:` 改名；
+1.0.0 做了三件事：**（1）拆成模块；（2）模型/结构两条功能的命名空间从 `abysslib:` 改名；
 （3）配置文件按 modid 重新命名。**
 
 **（1）依赖坐标**——聚合包坐标不变，消费方通常只需改版本号：
 
 ```gradle
-implementation("com.altnoir.abysslib:AbyssLib:2.0.0")   // 原来是 1.4.x
+implementation("com.altnoir.abysslib:AbyssLib:1.0.0")   // 原来是 1.4.x
 ```
 
 `neoforge.mods.toml` 里装聚合包时 `modId = "abysslib"` **不用改**；只装单个模块才换成
@@ -713,7 +713,7 @@ implementation("com.altnoir.abysslib:AbyssLib:2.0.0")   // 原来是 1.4.x
 
 **（2）命名空间改名**（资源键、注册表 id、定义目录）——`abysslib:` 不再被读取：
 
-| 旧（≤1.4.x） | 新（2.0.0 起） |
+| 旧（≤1.4.x） | 新（1.0.0 起） |
 |---|---|
 | `"abysslib:loader"` | `"relink:loader"` |
 | `abysslib:ctm` / `carpet_ctm` / `pane_ctm` / `giant` / `mural` / `pillar` / `limited_pillar` / `pane_pillar` | 同名换前缀：`relink:*` |
@@ -809,17 +809,19 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 
 **版本**：
 
+> **编号说明**：模块化之前的几次发布用**另一套旧编号**（1.2.0 / 1.3.0 / 1.4.0 / 1.4.5），按现在看都属于 **0.x 时代**；
+> 模块化这一次是**首个正式版 `1.0.0`**。旧版本目录已从发布仓库移除，需要旧 jar 请用 tag `pre-modular-1.4.5` 重建。
+
 | 版本 | 变更 |
 |---|---|
-| 1.3.0 | 源码内置模型加载器（移植自 Athena），命名空间改为 `abysslib` |
-| 1.4.0 | 源码内置注册框架 `Reginth`（fork 自 Registrate），移除外部依赖与 jarJar（**破坏性**） |
-| **2.0.0** | **模块化**：拆成 `AbyssLib-Reginth` / `AbyssLib-ReLink` / `AbyssLib-Atlas` 三个**可单独安装**的模组 + 聚合包 `AbyssLib`；模型命名空间 `abysslib:` → **`relink:`**、结构命名空间 `abysslib:` → **`atlas:`**（**破坏性**，见 [§6.3](#63-迁移到-200模块化--命名空间改名破坏性)）；新增上游 Athena 写法兼容层（见 [§3.6](#36-兼容上游-athena-写法)） |
+| *0.x 时代*（旧编号） | 单模组时期：1.2.0 jarJar 内置 Registrate + 分区创造栏 → 1.3.0 源码内置模型加载器（命名空间 `abysslib`）→ 1.4.0 源码内置注册框架 `Reginth`、移除外部依赖与 jarJar（**破坏性**）→ 1.4.5 结构放宽 + per-chunk |
+| **1.0.0** | **首个正式版 / 模块化**：拆成 `AbyssLib-Reginth` / `AbyssLib-ReLink` / `AbyssLib-Atlas` 三个**可单独安装**的模组 + 聚合包 `AbyssLib`；模型命名空间 `abysslib:` → **`relink:`**、结构命名空间 `abysslib:` → **`atlas:`**（**破坏性**，见 [§6.3](#63-迁移到-100模块化--命名空间改名破坏性)）；新增上游 Athena 写法兼容层（见 [§3.6](#36-兼容上游-athena-写法)） |
 
 **分支**（按 MC 线分开维护）：
 
 | 分支 / 目录 | 目标 | 关键差异 |
 |---|---|---|
-| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | **模块化多项目**；源码内置 `Reginth`（1.4.0 起）与模型加载器（1.3.0 起）；命名空间 `relink:` / `atlas:`（2.0.0 起） |
+| `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | **模块化多项目**；源码内置 `Reginth`（1.4.0 起）与模型加载器（1.3.0 起）；命名空间 `relink:` / `atlas:`（1.0.0 起） |
 | `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | 仍是**单项目**；以外部依赖方式使用 Registrate `MC26.1-1.5.7`；分区栏为 MIA-26.1 模型；**暂未内置模型加载器，也未内置注册框架，尚未模块化** |
 
 **许可**：本库自身代码为 **MIT**，见 [`LICENSE`](LICENSE)（`Copyright (c) 2025 Altnoir`）。
