@@ -1,8 +1,8 @@
 package com.altnoir.abysslib.client;
 
 import com.altnoir.abysslib.AbyssLib;
-import com.altnoir.abysslib.model.neoforge.client.ALModelSetup;
 import com.altnoir.abysslib.client.creative.ALSectionedCreativeTabRenderer;
+import com.altnoir.abysslib.model.neoforge.client.ALModelSetup;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -53,7 +53,7 @@ public class AbyssLibClient {
         } else if (minecraft.level != null) {
             // 关闭、或改后缀/排除表：重建区块网格即可（不重载图集，代价小得多）
             AbyssLib.LOGGER.info("AbyssLib: emissive overlay settings changed, rebuilding chunks");
-            minecraft.execute(() -> minecraft.levelRenderer.allChanged());
+            minecraft.execute(minecraft.levelRenderer::allChanged);
         }
     }
 }

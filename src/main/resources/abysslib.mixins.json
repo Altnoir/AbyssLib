@@ -3,10 +3,17 @@
   "minVersion": "0.8",
   "package": "com.altnoir.abysslib.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [],
+  "mixins": [
+    "structure.JigsawPlacementMixin",
+    "structure.JigsawStructureMixin",
+    "structure.ServerboundSetStructureBlockPacketMixin",
+    "structure.StructureBlockEntityMixin"
+  ],
   "client": [
     "ModelBakeryMixin",
-    "ModelManagerMixin"
+    "ModelManagerMixin",
+    "structure.StructureBlockEditScreenMixin",
+    "structure.StructureBlockRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

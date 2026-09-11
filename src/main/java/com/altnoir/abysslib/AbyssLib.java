@@ -1,10 +1,13 @@
 package com.altnoir.abysslib;
 
+import com.altnoir.abysslib.structure.ALStructureEnhancementCheck;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import org.slf4j.Logger;
 
@@ -21,6 +24,26 @@ import org.slf4j.Logger;
 public class AbyssLib {
     public static final String MOD_ID = "abysslib";
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    /**
+     * NeoForge 入口。当前只做一件事：把"原版结构限制放宽"的启动自检挂到 mod 事件总线上
+     * （见 {@link ALStructureEnhancementCheck}）。
+     * <p>用构造器显式注册而非 {@code @EventBusSubscriber}，是为了避开 NeoForge 21.1 中
+     * {@code EventBusSubscriber.Bus} 的弃用告警，也避免依赖"总路由事件类型自动推断"的行为。
+     */
+    public AbyssLib(IEventBus modEventBus, ModContainer modContainer) {
+        modEventBus.addListener(ALStructureEnhancementCheck::onCommonSetup);
+        // 游戏总线：世界数据包加载完成后二次汇报（verifyRange 这类注入要等数据包解析才会置位）
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ALStructureEnhancementCheck::onServerStarted);
+        // 原版世界生成扩展：abysslib:per_chunk（放置）、abysslib:grid_profile（数据包注册表）、abysslib:jigsaw（结构类型）
+        modEventBus.addListener(com.altnoir.abysslib.structure.ALGridProfile::registerDataPackRegistry);
+        com.altnoir.abysslib.structure.ALStructurePlacements.register(modEventBus);
+        com.altnoir.abysslib.structure.ALStructureTypes.register(modEventBus);
+        // 数据包重载后清空布局缓存（profile / 结构 JSON 可能已变）
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+                (net.neoforged.neoforge.event.AddReloadListenerEvent event) ->
+                        com.altnoir.abysslib.structure.ALStructureLayoutCache.clear());
+    }
 
     /**
      * 生成 {@code abysslib:<path>} 资源路径。

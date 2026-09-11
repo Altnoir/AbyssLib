@@ -34,6 +34,12 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · mod id
 - [6. 迁移指南](#6-迁移指南)
 - [7. 排错](#7-排错)
 - [8. 分支与许可](#8-分支与许可)
+- [9. 原版结构扩展（per-chunk 放置与 abysslib:jigsaw）](#9-原版结构扩展per-chunk-放置与-abysslibjigsaw)
+  - [9.1 三个新增的类型](#91-三个新增的类型)
+  - [9.2 用 datagen 生成（推荐，走 reginth）](#92-用-datagen-生成推荐走-reginth)
+  - [9.3 手写 JSON 的等价形式](#93-手写-json-的等价形式)
+  - [9.4 字段与约束](#94-字段与约束)
+  - [9.5 长道路与地形贴合](#95-长道路与地形贴合)
 
 ---
 
@@ -355,6 +361,9 @@ emissiveExclude = []         # 不应用叠加层的贴图 / 命名空间前缀�
 **不改写 blockstate**，因此可以和你现有的 `RegistrateBlockstateProvider`（如 PoopSky 的 `BlockStateGen`）
 **共存、互不覆盖**。
 
+> 结构 / 世界生成（`abysslib:jigsaw`、`abysslib:per_chunk`、`abysslib:grid_profile`）的 datagen 走**另一条通道**
+> （reginth 的 `getDataGenInitializer()`），见 [§9](#9-原版结构扩展per-chunk-放置与-abysslibjigsaw)。本节只讲**模型定义**。
+
 ```java
 // 1) 常规模型 / blockstate / 物品模型：照旧用现有 helper
 //    （这份模型同时充当"模型加载器未生效时的回退外观"，也让物品栏图标正常）
@@ -675,3 +684,222 @@ AbyssLib: emissive overlay enabled for '<blockstate>' (base=..., overlay=..., se
 > 上述声明**随产物一同打包**进 jar：`META-INF/LICENSE` 与 `META-INF/NOTICE.md`
 > （由 `build.gradle` 的 `processResources` 从仓库根目录复制）。MIT 要求再分发时保留版权与许可声明，
 > 因此这两个文件**不要从 build 配置里删掉**。
+
+---
+
+## 9. 原版结构扩展（per-chunk 放置与 abysslib:jigsaw）
+
+面向"要生成**超过原版 128 格**的大结构"的消费方：长道路、巨型地牢、跨群系的连续结构。
+不覆盖任何原版文件，也不需要安装其它结构库。
+
+> 本库另外放宽了原版上限（jigsaw `max_distance_from_center` 128→512、`size` 20→128、结构方块 48→128）。
+> 那属于"**能不能声明**"；本节解决的是"**能不能长出来**"——两者是互补的两层，缺一层都不成立。
+
+### 9.1 三个新增的类型
+
+| 类型 | 标识符 | 作用 |
+|---|---|---|
+| `StructureType` | `abysslib:jigsaw` | 与原版 jigsaw 同形（字段一致，多一个 `grid_profile`），但**锚点与随机种子固定到结构中心**；并把 piece 切成"每个 chunk 只带自己那片"，从而让足迹内每个 chunk 各自落地 |
+| `StructurePlacementType` | `abysslib:per_chunk` | **逐 chunk 放置**：足迹范围内每个 chunk 都持有结构起点。原版只有中心 chunk 有起点，而相邻 chunk 靠 references 得知结构存在、那个半径是**硬编码 ±8 chunk = 128 格**（`MAX_TOTAL_STRUCTURE_RANGE = 128` 的来历），超出的 piece 不落块 |
+| 数据包注册表 | `abysslib:grid_profile` | 上述两者的**唯一参数来源**（`spacing` / `separation` / `spread_type` / `salt` / `footprint_chunks`）。placement 与结构都只引用同一个 id，因此"两边参数不一致导致结构碎裂"在结构上不可能发生 |
+
+> **必须成对使用**：`abysslib:jigsaw` 配原版 `random_spread` → 只有中心 chunk 有起点，远处 piece 依旧不落块；
+> `abysslib:per_chunk` 配原版 `minecraft:jigsaw` → 每个 chunk 各算一份布局（原版以当前 chunk 为锚点）→ 结构碎裂。
+> 另外 `abysslib:per_chunk` 继承自原版 `RandomSpreadStructurePlacement`，所以 `/locate structure` 正常工作。
+
+### 9.2 用 datagen 生成（推荐，走 reginth）
+
+**不需要**自己写 `DatapackBuiltinEntriesProvider`：reginth 已经内置了这条通道。
+
+```java
+// ① grid profile（数据包注册表元素）
+public final class MyGridProfiles {
+    public static final ResourceKey<ALGridProfile> ROAD =
+            ResourceKey.create(ALGridProfile.KEY, MyMod.loc("road"));
+
+    public static void bootstrap(BootstrapContext<ALGridProfile> ctx) {
+        //                                  spacing, separation, spreadType,                salt,      footprint_chunks
+        ctx.register(ROAD, new ALGridProfile(64, 32, RandomSpreadType.LINEAR, 10387312, 8));
+    }
+}
+```
+
+```java
+// ② 结构（注册进 Registries.STRUCTURE）
+public static void bootstrap(BootstrapContext<Structure> ctx) {
+    HolderGetter<Biome> biome = ctx.lookup(Registries.BIOME);
+    HolderGetter<StructureTemplatePool> pool = ctx.lookup(Registries.TEMPLATE_POOL);
+    Holder<ALGridProfile> profile = ctx.lookup(ALGridProfile.KEY).getOrThrow(MyGridProfiles.ROAD);
+
+    ctx.register(MyStructures.ROAD, new ALJigsawStructure(
+            new Structure.StructureSettings.Builder(biome.getOrThrow(MyTags.HAS_ROAD))
+                    .generationStep(GenerationStep.Decoration.SURFACE_STRUCTURES)
+                    .terrainAdapation(TerrainAdjustment.NONE)   // 道路（terrain_matching）用 NONE，见 §9.5
+                    .build(),
+            pool.getOrThrow(MyPools.ROAD_START),
+            32,                                             // size（层深），AbyssLib 放宽到 128
+            ConstantHeight.of(VerticalAnchor.absolute(0)),
+            false,                                          // use_expansion_hack
+            Heightmap.Types.WORLD_SURFACE_WG,
+            128,                                            // max_distance_from_center（AbyssLib 放宽到 512）
+            profile));
+}
+```
+
+```java
+// ③ 结构集（注册进 Registries.STRUCTURE_SET）
+public static void bootstrap(BootstrapContext<StructureSet> ctx) {
+    Holder<ALGridProfile> profile = ctx.lookup(ALGridProfile.KEY).getOrThrow(MyGridProfiles.ROAD);
+    ctx.register(MyStructureSets.ROADS, new StructureSet(
+            ctx.lookup(Registries.STRUCTURE).getOrThrow(MyStructures.ROAD),
+            new ALGridPlacement(profile)));                 // 便利构造：其余用原版默认值
+}
+```
+
+```java
+// ④ 三行接进 reginth（放在模组入口构造器里即可，datagen 之外不会有副作用）
+public MyMod(IEventBus modBus, ModContainer container) {
+    DataProviderInitializer init = MyMod.reginth().getDataGenInitializer();
+    init.add(ALGridProfile.KEY, MyGridProfiles::bootstrap);
+    init.add(Registries.STRUCTURE, MyStructures::bootstrap);
+    init.add(Registries.STRUCTURE_SET, MyStructureSets::bootstrap);
+    // 模板池等照旧：init.add(Registries.TEMPLATE_POOL, MyPools::bootstrap);
+}
+```
+
+产物路径（`runData` 后，与手写文件完全等价）：
+
+```
+src/generated/resources/data/<你的modid>/abysslib/grid_profile/road.json
+src/generated/resources/data/<你的modid>/worldgen/structure/road.json
+src/generated/resources/data/<你的modid>/worldgen/structure_set/roads.json
+```
+
+实测生成的 profile JSON 形如：
+
+```json
+{ "spacing": 64, "separation": 32, "spread_type": "linear", "salt": 10387312, "footprint_chunks": 8 }
+```
+
+> ⚠️ **datagen 期间 Holder 尚未绑定**：`BootstrapContext.lookup(...)` 拿到的 `Holder` 在 bootstrap 过程中**不能**调 `value()`。
+> 所以 `max_distance_from_center` 必须**显式传**，不能用 `profile.value().footprintChunks() * 16` 去推导
+> （那会在 `runData` 时抛异常）。本库的 placement / 结构类型内部一律**运行时**才 `value()`，不存在这个问题。
+
+#### 9.2.1 一键助手（可选，但省事）
+
+嫌上面四段样板啰嗦时用 `ALStructureDatagen`：它把 profile + 结构 + **配套 structure_set** 一次登记，
+并且 **structure_set 由 profile 自动派生**（同一 profile + `abysslib:per_chunk`），
+于是"两处 profile 必须一致"这件事**不可能写错**。
+
+```java
+public MyMod(IEventBus modBus, ModContainer container) {
+    ALStructureDatagen.create()
+        .profile(MyProfiles.ROAD, ALGridProfile.forRadius(256, 64, 10387312))   // 由半径自动派生 footprint_chunks
+        .jigsaw(MyStructures.ROAD, MyStructureSets.ROADS, MyProfiles.ROAD,
+                (biomes, pools, profile) -> new ALJigsawStructure(
+                        new Structure.StructureSettings.Builder(biomes.getOrThrow(MyTags.HAS_ROAD))
+                                .generationStep(GenerationStep.Decoration.SURFACE_STRUCTURES)
+                                .terrainAdapation(TerrainAdjustment.NONE).build(),
+                        pools.getOrThrow(MyPools.ROAD_START),
+                        32, ConstantHeight.of(VerticalAnchor.absolute(0)), false,
+                        Heightmap.Types.WORLD_SURFACE_WG, 256, profile))
+        .register(MyMod.reginth());
+}
+```
+
+两个助手各自解决的问题：
+
+| 助手 | 解决什么 |
+|---|---|
+| `ALGridProfile.forRadius(maxDistance, spacing, salt)` | **自动派生 `footprint_chunks` = `ceil(半径 / 16)`**，并在**构造期**就校验 `spacing > separation` 与足迹是否重叠（抛 `IllegalArgumentException` 并给出建议值，比等数据包加载报错好定位） |
+| `ALStructureDatagen` | 三条注册收成一处；`jigsaw(...)` 顺带把 set 建好 → **profile 只写一次**，杜绝两边不一致；不想用它也完全可以（等价写法见上面 §9.2 与 §9.3） |
+
+> `ALStructureDatagen.structure(...)` 也需要 profile key（因为 `abysslib:jigsaw` 一定引用 profile），
+> 而工厂里拿到的 `Holder` 是 bootstrap 期间解析的 —— 见上面的 ⚠️。
+
+### 9.3 手写 JSON 的等价形式
+
+不用 datagen 时，三条 JSON 直接手写即可（路径同上）：
+
+```json
+// data/<ns>/abysslib/grid_profile/road.json
+{ "spacing": 64, "separation": 32, "spread_type": "linear", "salt": 10387312, "footprint_chunks": 8 }
+
+// data/<ns>/worldgen/structure/road.json
+{ "type": "abysslib:jigsaw", "grid_profile": "<ns>:road",
+  "start_pool": "<ns>:road/start", "size": 32, "max_distance_from_center": 128,
+  "start_height": { "absolute": 0 }, "project_start_to_heightmap": "WORLD_SURFACE_WG",
+  "use_expansion_hack": false, "terrain_adaptation": "none", "step": "surface_structures",
+  "biomes": "#minecraft:is_overworld", "spawn_overrides": {} }
+
+// data/<ns>/worldgen/structure_set/roads.json
+{ "structures": [ { "structure": "<ns>:road", "weight": 1 } ],
+  "placement": { "type": "abysslib:per_chunk", "grid_profile": "<ns>:road" } }
+```
+
+### 9.4 字段与约束
+
+**`grid_profile`（校验在加载期执行，写错会直接报错并给出行号级别的说明）**
+
+| 字段 | 说明 |
+|---|---|
+| `spacing` | 网格单元边长（**chunk**），必须 > `separation`（否则原版算法里 `nextInt(0)` 抛异常） |
+| `separation` | 中心在单元内的最小退让（chunk） |
+| `spread_type` | `linear`（默认）/ `triangular`，与原版一致 |
+| `salt` | 与原版一致的盐，决定中心落在单元内的哪个位置 |
+| `footprint_chunks` | 结构中心到足迹边缘的 chunk 数 = `ceil(max_distance_from_center / 16)`；**必须满足 `footprint_chunks * 2 < spacing`**（否则相邻足迹重叠） |
+
+**`abysslib:jigsaw` 相对原版 `minecraft:jigsaw` 的差异**
+
+| 字段 | 差异 |
+|---|---|
+| `grid_profile` | **新增且必填**（引用 `abysslib:grid_profile`） |
+| `max_distance_from_center` | **上限 512**（原版 128）、**推荐 256** —— 取舍与代价见 §9.4.1。同时受 `footprint_chunks * 16` 约束，超出会在运行时打一条 WARN |
+| `size` | 上限 128（原版 20） |
+| 其余字段 | 与原版 jigsaw 完全一致（`start_pool` / `size` / `start_height` / `use_expansion_hack` / `project_start_to_heightmap` / `pool_aliases` / `dimension_padding` / `liquid_settings` / `biomes` / `step` / `terrain_adaptation` / `spawn_overrides`） |
+
+#### 9.4.1 `max_distance_from_center`：上限 512，**推荐 256**
+
+| 取值 | `footprint_chunks` | 足迹面积 | 建议 |
+|---|---|---|---|
+| 128（原版上限） | 8 | (2·8+1)² = **289** chunk | 只够约 256 格跨度；原版机制下超过 128 格就开始掉 piece |
+| **256（推荐）** | **16** | (2·16+1)² = **1089** chunk（覆盖 512×512 格） | **绝大多数巨型结构（长道路、大城堡、地牢）用这个**，代价可控 |
+| 512（上限） | 32 | (2·32+1)² = **4225** chunk | ⚠️ **会明显影响性能**，只在确实需要时用 |
+
+**为什么 512 会变慢 —— 这个参数不是惰性的。** 它和"结构方块上限"那类"允许但不执行"的阈值完全不同，它直接决定真实工作量：
+
+1. **足迹面积 ∝ r²**：足迹内**每一个** chunk 都会走一次我们的 `findGenerationPoint`（缓存命中 + 按 chunk 索引取片）。
+   256 → 512 就是 **4 倍**（1089 → 4225 个 chunk）。
+2. **jigsaw 展开盒变大**：`JigsawPlacement` 的候选搜索空间随半径增长。好在**每个 cell 只展开一次**（有布局缓存），
+   所以这是"每个结构一次"的成本，不是每 chunk 成本。
+3. **布局本身更大**：piece 更多 → 缓存里每份布局更占内存（缓存有 256 条上限，超限整体清空）。
+4. **`spacing` 被迫变大**：`footprint_chunks * 2 < spacing` 是硬校验 ⇒ 512 需要 `spacing > 64` chunk（≈1040 格），
+   即"巨型结构必须稀疏"。用 `ALGridProfile.forRadius(...)` 时会在**构造期**直接抛异常并告诉你需要多大 `spacing`。
+
+常用配置参考：
+
+```java
+ALGridProfile.forRadius(256, 64,  10387312)   // 推荐：footprint=16，要求 spacing > 32 → 取 64 很宽松
+ALGridProfile.forRadius(512, 128, 10387312)   // 激进：footprint=32，要求 spacing > 64 → 取 128
+```
+
+**结论**：**按 256 设计**；只有确实需要跨度超过 512 格的整体结构时才上 512，并接受"玩家走进它时，那一片区域的 chunk 生成都会更慢"。
+
+> 两个"不会增加"的成本，可以放心：**客户端零成本**（结构数据不发给客户端）；也**不会级联生成远处 chunk**
+> （per-chunk 只在你实际加载的 chunk 上付费，而不是像"放大 references 半径"那样让全世界每个 chunk 都多扫邻居）。
+
+### 9.5 长道路与地形贴合
+
+道路用 `projection: terrain_matching` 的模板池时，**per-chunk 与它完全兼容**：`GravityProcessor` 是**逐块**读高度图的，
+不依赖"能不能看到别的 piece"，所以切片不会造成接缝，反而比原版更宽松（原版要求持有该块的 chunk 距起点 ≤8 chunk 且 piece 名义包围盒与其相交）。
+
+三条要点：
+
+1. **`terrain_adaptation` 填 `none`**：`Beardifier` 只处理 `projection: rigid` 的 piece，对 `terrain_matching` 的 piece 设 beard 等于没设。
+2. **垂直位移有 ≈16 格（一个 chunk 写入半径）的硬上界**：`StructureTemplate.placeInWorld` 会按写入区裁剪，
+   被贴地处理器挪出写入区的方块会被**静默跳过**。所以别用一条模板跨深谷/陡崖，改成分段 + 桥墩/支柱。
+3. **`rigid` + `beard_thin`/`bury`（城堡那类）同样保住原版贴合**：本库的切片是"保留与本 chunk ±1 chunk 相交的 piece"，
+   它与 FEATURES 的写入半径一致，因此 `Beardifier` 需要的"距本 chunk 12 格内的 piece"全部可见。
+
+> 状态说明（照实记录）：上述 **datagen 链路已实测**（`runData` 能正确生成 profile/structure/set 三个 JSON）；
+> **服务端实际生成**（结构落地、>128 格完整性、跨 chunk 无接缝）的端到端实测尚未完成，请以你自己的实测为准。
