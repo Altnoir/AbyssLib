@@ -130,16 +130,8 @@ tasks.withType(ProcessResources).configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-// 许可声明随分发一同打包（MIT 要求副本或实质部分需附版权与许可声明）。
-// 放进 jar 的 META-INF/，与 mods.toml 里的 license 字段互为补充：
-//   META-INF/LICENSE    = 本库自身许可（MIT）
-//   META-INF/NOTICE.md  = 内置第三方源码的署名（Registrate → Reginth、Athena → 模型加载器）
-// 只对主产物的 processResources 生效；generateModMetadata 只处理 templates，不受影响。
 tasks.named('processResources', ProcessResources).configure {
     from(project.file('LICENSE')) {
-        into 'META-INF'
-    }
-    from(project.file('NOTICE.md')) {
         into 'META-INF'
     }
 }

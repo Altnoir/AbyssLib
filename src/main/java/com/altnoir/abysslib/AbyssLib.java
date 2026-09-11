@@ -1,6 +1,6 @@
 package com.altnoir.abysslib;
 
-import com.altnoir.abysslib.structure.ALStructureEnhancementCheck;
+import com.altnoir.abysslib.structure.*;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -9,6 +9,8 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import org.slf4j.Logger;
 
 /**
@@ -33,16 +35,17 @@ public class AbyssLib {
      */
     public AbyssLib(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(ALStructureEnhancementCheck::onCommonSetup);
+
         // 游戏总线：世界数据包加载完成后二次汇报（verifyRange 这类注入要等数据包解析才会置位）
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ALStructureEnhancementCheck::onServerStarted);
+        NeoForge.EVENT_BUS.addListener(ALStructureEnhancementCheck::onServerStarted);
+
         // 原版世界生成扩展：abysslib:per_chunk（放置）、abysslib:grid_profile（数据包注册表）、abysslib:jigsaw（结构类型）
-        modEventBus.addListener(com.altnoir.abysslib.structure.ALGridProfile::registerDataPackRegistry);
-        com.altnoir.abysslib.structure.ALStructurePlacements.register(modEventBus);
-        com.altnoir.abysslib.structure.ALStructureTypes.register(modEventBus);
+        modEventBus.addListener(ALGridProfile::registerDataPackRegistry);
+        ALStructurePlacements.register(modEventBus);
+        ALStructureTypes.register(modEventBus);
+
         // 数据包重载后清空布局缓存（profile / 结构 JSON 可能已变）
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
-                (net.neoforged.neoforge.event.AddReloadListenerEvent event) ->
-                        com.altnoir.abysslib.structure.ALStructureLayoutCache.clear());
+        NeoForge.EVENT_BUS.addListener((AddReloadListenerEvent event) -> ALStructureLayoutCache.clear());
     }
 
     /**

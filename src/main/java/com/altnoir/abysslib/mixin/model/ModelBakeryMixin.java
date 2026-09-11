@@ -1,4 +1,4 @@
-package com.altnoir.abysslib.mixin;
+package com.altnoir.abysslib.mixin.model;
 
 import com.altnoir.abysslib.model.impl.loading.ALModelDefinitions;
 import net.minecraft.client.color.block.BlockColors;

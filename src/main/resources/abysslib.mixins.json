@@ -10,8 +10,8 @@
     "structure.StructureBlockEntityMixin"
   ],
   "client": [
-    "ModelBakeryMixin",
-    "ModelManagerMixin",
+    "model.ModelBakeryMixin",
+    "model.ModelManagerMixin",
     "structure.StructureBlockEditScreenMixin",
     "structure.StructureBlockRendererMixin"
   ],
