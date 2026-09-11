@@ -22,6 +22,7 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · 包名
 
 - [0. 快速开始](#0-快速开始)
   - [0.1 装哪个 jar](#01-装哪个-jar)
+  - [0.2 统一配置入口](#02-统一配置入口聚合包)
 - [1. 分层与构建](#1-分层与构建)
 - [2. 注册框架 Reginth](#2-注册框架-reginth)
   - [2.1 建立实例](#21-建立实例)
@@ -89,6 +90,26 @@ versionRange = "[1.0,)"
 ordering = "AFTER"
 side = "BOTH"
 ```
+
+### 0.2 统一配置入口（聚合包）
+
+装**聚合包**时，模组列表里 `AbyssLib` 的「配置」按钮会打开一个**统一入口**：
+里面列出所有「已加载且可配置」的 AbyssLib 模块，点哪个就进哪个模块**自己的标准配置界面**。
+
+```
+模组列表 → AbyssLib → 配置 → [ AbyssLib - ReLink ]   ← 点它
+                              [ 完成 ]
+                                    ↓
+                          ReLink 自己的配置界面（发光叠加层等）
+```
+
+- **只列本库的模块**（不枚举别人的 mod），且只列**有配置的**：`AbyssLib-Reginth` / `AbyssLib-Atlas`
+  目前没有配置项，所以不会出现在列表里（免得点进一个空界面）。
+- 目前只有 ReLink 有配置项：`config/abysslib_relink-client.toml`。
+- 点进去后改的东西写的是**那个模块自己的文件** —— 这是刻意的：FML 的配置文件按文件名全局独占，
+  两个 mod 抢同一个文件名会直接崩游戏，所以这里只做"入口统一"，不做"文件合并"，
+  也就不存在"两个地方能改同一件事"的隐患。
+- **只装单个模块**（没装聚合包）时本入口不存在，直接用那个模块自己的配置按钮即可。
 
 
 **模组入口**：
@@ -780,7 +801,6 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 没有这行说明基贴图没找到同后缀贴图——检查后缀、贴图路径/命名空间、是否被 `emissiveExclude` 排除。
 
 **结构扩展的自检**（Atlas 模块，INFO 级，启动时必打两条）：
-
 ```
 [AbyssLib/Atlas] 原版结构限制放宽（mod 加载完成）-> jigsaw: distance=256, depth=128 [codec=OK, verifyRange=待运行时, ...]
 [AbyssLib/Atlas] 原版结构限制放宽（世界数据包加载完成）-> ... [codec=OK, verifyRange=OK, ...]
@@ -799,6 +819,10 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 调试用的 `minecraft/**` 覆盖残留，然后重新 `gradlew build`。本库源码只含 `assets/abysslib/**`
 （Reginth 的创造栏横幅）与 `assets/abysslib_relink/**`（ReLink 的配置译名），
 **从不覆盖原版资源**（各模块 `jar` 任务都硬排除了 `assets/minecraft/**`）。
+
+**配置入口里看不到某个模块？** 正常。统一配置入口（见 [§0.2](#02-统一配置入口聚合包)）只列出**有配置的**模块：
+`AbyssLib-Reginth` / `AbyssLib-Atlas` 目前没有配置项，所以不会出现（避免点进空界面）。
+若连 `AbyssLib` 的「配置」按钮都没有，说明你装的是单个模块而不是聚合包 —— 直接用那个模块自己的配置按钮即可。
 
 **专用服务端报客户端类加载？** 不应发生。分区横幅在 `AbyssLibReginth`、模型加载器在 `AbyssLibReLink`
 （都是 `@Mod(dist = CLIENT)`）里初始化，ReLink 的 mixin 配置也只有 `client` 段。
