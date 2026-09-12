@@ -23,6 +23,13 @@ neoForge {
 
 dependencies {
     // ReLink 的模型定义 datagen 助手（ALModelDefinitionProvider#ctm）在**方法签名**里用了
-    // Reginth 的 BlockEntry，所以编译期必需；运行时随包内嵌（jarJar），保证单装本模块可用。
-    jarJar(api project(':AbyssLib-Reginth'))
+    // Reginth 的 BlockEntry —— 所以编译期必需，但**只是 datagen 期的依赖**：
+    // 本模块的运行时代码（AbyssLibReLink / ALModelSetup 等）一处都不引用 reginth。
+    //
+    // 因此这里用 compileOnly 而**不** jarJar 内嵌：
+    //   - 想要 datagen 助手的使用方，自行依赖 com.altnoir.abysslib:AbyssLib-Reginth（或直接用聚合包 AbyssLib）
+    //   - 不想要的，就不引入 reginth，自己手写 datagen —— 本模块照常编译与运行
+    //   - 单装本模块（玩具侧）运行不受影响：datagen 类在游戏内根本不会被加载
+    // 这样避免了聚合包里 reginth 被重复内嵌（原先 3 份 → 现在 1 份）。
+    compileOnly project(':AbyssLib-Reginth')
 }

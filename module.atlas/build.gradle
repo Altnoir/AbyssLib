@@ -23,6 +23,10 @@ neoForge {
 
 dependencies {
     // Atlas 的 datagen 助手（ALStructureDatagen#register）用了 Reginth 的 AbstractReginth /
-    // DataProviderInitializer，编译期必需；运行时随包内嵌（jarJar）。
-    jarJar(api project(':AbyssLib-Reginth'))
+    // DataProviderInitializer —— 同样只是 datagen 期依赖：本模块的运行时代码
+    // （AbyssLibAtlas / ALGridPlacement / ALJigsawStructure 等）一处都不引用 reginth。
+    //
+    // 所以用 compileOnly 而**不** jarJar 内嵌，让 reginth 成为使用方的**可选**依赖：
+    // 要 datagen 助手就自行依赖 AbyssLib-Reginth（或直接装聚合包 AbyssLib），不要就自己手写。
+    compileOnly project(':AbyssLib-Reginth')
 }

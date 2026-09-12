@@ -13,7 +13,8 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · 包名
 
 > **命名空间 ≠ modid**：modid（`abysslib_relink`）只用于模组加载与依赖声明；
 > 资源包/数据包看到的是**命名空间**（`relink:` / `atlas:`）。
-> ReLink 与 Atlas 各自 jarJar 内嵌 Reginth，因此**三个模块都能单独安装**。
+> **三个模块都能单独安装**（玩家侧不需要 Reginth）。ReLink / Atlas 只在**编译期**用 Reginth 的
+> 类型写 datagen 助手的签名，运行时一处都不引用它，所以没有内嵌——详见 [§0.2](#02-reginth-是可选依赖)。
 > 需要 **Simple Bedrock Model / mae** 的模组请自行声明（jitpack 坐标 + 各自 jarJar / compileOnly），本库不提供。
 
 ---
@@ -22,7 +23,8 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · 包名
 
 - [0. 快速开始](#0-快速开始)
   - [0.1 装哪个 jar](#01-装哪个-jar)
-  - [0.2 统一配置入口](#02-统一配置入口聚合包)
+  - [0.2 Reginth 是可选依赖](#02-reginth-是可选依赖)
+  - [0.3 统一配置入口](#03-统一配置入口聚合包)
 - [1. 分层与构建](#1-分层与构建)
 - [2. 注册框架 Reginth](#2-注册框架-reginth)
   - [2.1 建立实例](#21-建立实例)
@@ -64,10 +66,12 @@ dependencies {
     // 全套（聚合包）：注册框架 + 模型加载器 + 结构扩展都在这一份里
     implementation("com.altnoir.abysslib:AbyssLib:1.0.0")
 
-    // 或按需只引某一个功能模块（各自 jarJar 内嵌 Reginth，可单独安装）：
+    // 或按需只引某一个功能模块（可单独安装、不含 Reginth）：
     // implementation("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
     // implementation("com.altnoir.abysslib:AbyssLib-ReLink:1.0.0")
     // implementation("com.altnoir.abysslib:AbyssLib-Atlas:1.0.0")
+    // 要在单独模块上用 datagen 助手，再加一条（见 §0.3）：
+    // compileOnly("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
 }
 ```
 
@@ -77,8 +81,39 @@ dependencies {
 |---|---|---|
 | 全套功能 | `AbyssLib` | 只装 `AbyssLib`（三个模块已内嵌） |
 | 只要注册框架 / 分区创造栏 | `AbyssLib-Reginth` | `AbyssLib-Reginth` |
-| 只要 CTM / 动态模型 / 发光 | `AbyssLib-ReLink` | `AbyssLib-ReLink`（内嵌 Reginth） |
-| 只要结构扩展 | `AbyssLib-Atlas` | `AbyssLib-Atlas`（内嵌 Reginth） |
+| 只要 CTM / 动态模型 / 发光 | `AbyssLib-ReLink` | `AbyssLib-ReLink` |
+| 只要结构扩展 | `AbyssLib-Atlas` | `AbyssLib-Atlas` |
+
+> 表中"运行时需要的 mod"只是**最少**要求：单装 ReLink / Atlas **不需要**再装 `AbyssLib-Reginth`
+> （它们不内嵌、运行时不引用 Reginth）。`AbyssLib-Reginth` 是**开发期可选依赖**，见 [§0.2](#02-reginth-是可选依赖)。
+
+### 0.2 Reginth 是可选依赖
+
+**运行时**：`AbyssLib-ReLink` 与 `AbyssLib-Atlas` 的 jar 里**没有任何**引用 reginth 的类会随游戏加载——
+编译期扫过 `.class` 常量池，全模块只有两个类出现 `abysslib/reginth` 引用：
+
+| 模块 | 唯一引用 reginth 的类 | 用途 |
+|---|---|---|
+| ReLink | `ALModelDefinitionProvider` | CTM / 动态模型**定义 datagen** 的基类 |
+| Atlas | `ALStructureDatagen` | `atlas:jigsaw` / `per_chunk` / `grid_profile` 的 datagen 注册入口 |
+
+这两个类都不带类级注解、不被 `META-INF/services` 引用、也不在 `neoforge.mods.toml` 里声明依赖，
+**只有你自己在 `GatherDataEvent` 里 `new` 它们时才需要 Reginth**。所以：
+
+| 你的情况 | 要不要引 Reginth |
+|---|---|
+| 用聚合包 `AbyssLib` | **不用**。聚合包 `jarJar` 内嵌全部三个模块，`AbyssLib` 的 POM 里 Reginth 是传递依赖，datagen 开箱可用 |
+| 单装 ReLink / Atlas，**要** datagen 助手 | 加一条 `compileOnly("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")` |
+| 单装 ReLink / Atlas，**不要** datagen（自己手写 JSON） | 什么也不用加 |
+
+> 手写 JSON 的等价形式见 [§3.5](#35-用-datagen-生成定义推荐做法) 与 [§9.3](#93-手写-json-的等价形式)；
+> 两条通道产出的文件格式完全一致，都是普通资源/数据包文件。
+
+> **为什么不做成内嵌**：ReLink / Atlas 对 Reginth 只有**方法签名级**的 datagen 依赖，内嵌后聚合包里
+> Reginth 会出现 3 份（聚合包自身 1 份 + 两个模块各 1 份），聚合包体积从 356 KB 涨到 740 KB。
+> 运行时 jarJar 会按 GAV 去重、不会真的加载多份类，但那 384 KB 是白白的下载与磁盘占用。
+> 对比 AnvilLib：它对 `anvillib-util` 是**运行时核心依赖**（`AbstractRegistrum` 有 63 处引用），
+> 无法改成 `compileOnly`，所以它只能承受重复内嵌——本库的情况不同，可以去掉。
 
 **`neoforge.mods.toml`**：装聚合包装 `abysslib`；只装单个模块时把 `modId` 换成对应模块的 modid。
 
@@ -91,7 +126,7 @@ ordering = "AFTER"
 side = "BOTH"
 ```
 
-### 0.2 统一配置入口（聚合包）
+### 0.3 统一配置入口（聚合包）
 
 装**聚合包**时，模组列表里 `AbyssLib` 的「配置」按钮会打开一个**统一入口**：
 里面列出所有「已加载且可配置」的 AbyssLib 模块，点哪个就进哪个模块**自己的标准配置界面**。
@@ -176,8 +211,14 @@ AbyssLib/
 ./gradlew publish    # 四个坐标一起发布到 repo/
 ```
 
-> 子模块之间：ReLink / Atlas 各自 `jarJar` 内嵌 Reginth（因为它们的 datagen 助手在**方法签名**里
-> 用了 Reginth 的 `BlockEntry` / `AbstractReginth`），聚合包再内嵌全部三个。
+> **子模块之间没有内嵌**：ReLink / Atlas 用 `compileOnly project(':AbyssLib-Reginth')` 引 Reginth，
+> 因为它们的 datagen 助手只在**方法签名**里用了 Reginth 的 `BlockEntry` / `AbstractReginth`，
+> 运行时代码一处都不引用。聚合包再 `jarJar` 内嵌全部三个模块，所以聚合包里 Reginth **只有 1 份**。
+> 各 jar 体积：聚合 356 KB / Reginth 210 KB / ReLink 131 KB / Atlas 42 KB。
+
+> **消费方 datagen 前置条件**：只有当你（在消费方工程里）调用 `ALModelDefinitionProvider`
+> 或 `ALStructureDatagen` 时才需要 Reginth 在编译期可见。用聚合包时它随 POM 传递、无需额外声明；
+> 单装 ReLink / Atlas 时自己加一条 `compileOnly`，或干脆手写 JSON。详见 [§0.2](#02-reginth-是可选依赖)。
 
 **客户端边界**：ReLink 与 Reginth 的客户端部分都是 `@Mod(value = ..., dist = Dist.CLIENT)`，
 **专用服务端不会加载这些类**。mixin 分两份：`abysslib_relink.mixins.json`（仅 `client` 段）、
@@ -417,6 +458,11 @@ emissiveExclude = []         # 不应用叠加层的贴图 / 命名空间前缀�
 
 ### 3.5 用 datagen 生成定义（推荐做法）
 
+> **前置条件**：`ALModelDefinitionProvider` 的签名里用了 Reginth 的 `BlockEntry`，所以**你的工程编译期
+> 需要 Reginth 可见**。用聚合包 `AbyssLib` 时它随 POM 传递，开箱可用；单装 `AbyssLib-ReLink` 时请自行加
+> `compileOnly("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")`，否则改用 [§3.1](#31-三种摆放方式) 的手写 JSON。
+> 见 [§0.2](#02-reginth-是可选依赖)。
+
 `ALModelDefinitionProvider` 生成的是**定义目录**形式（`assets/<modid>/relink/<方块>.json`），
 **不改写 blockstate**，因此可以和你现有的 `RegistrateBlockstateProvider`（如 PoopSky 的 `BlockStateGen`）
 **共存、互不覆盖**。
@@ -636,10 +682,14 @@ dependencies {
     // 也不要再 jarJar 它们。
     implementation("com.altnoir.abysslib:AbyssLib:1.0.0")
 
-    // 只想要某一个功能时，换成对应模块（见 §0.1）：
+    // 只想要某一个功能时，换成对应模块（见 §0.1）。注意这些模块**不含** Reginth：
     // implementation("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
     // implementation("com.altnoir.abysslib:AbyssLib-ReLink:1.0.0")
     // implementation("com.altnoir.abysslib:AbyssLib-Atlas:1.0.0")
+
+    // 单装 ReLink / Atlas 时，若要用库提供的 datagen 助手（§3.5 / §9.2）再补这一条；
+    // 不用 datagen（手写 JSON）就什么都不用加，运行时也不需要装 AbyssLib-Reginth。
+    // compileOnly("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
 }
 ```
 
@@ -820,12 +870,26 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 （Reginth 的创造栏横幅）与 `assets/abysslib_relink/**`（ReLink 的配置译名），
 **从不覆盖原版资源**（各模块 `jar` 任务都硬排除了 `assets/minecraft/**`）。
 
-**配置入口里看不到某个模块？** 正常。统一配置入口（见 [§0.2](#02-统一配置入口聚合包)）只列出**有配置的**模块：
+**配置入口里看不到某个模块？** 正常。统一配置入口（见 [§0.3](#03-统一配置入口聚合包)）只列出**有配置的**模块：
 `AbyssLib-Reginth` / `AbyssLib-Atlas` 目前没有配置项，所以不会出现（避免点进空界面）。
 若连 `AbyssLib` 的「配置」按钮都没有，说明你装的是单个模块而不是聚合包 —— 直接用那个模块自己的配置按钮即可。
 
 **专用服务端报客户端类加载？** 不应发生。分区横幅在 `AbyssLibReginth`、模型加载器在 `AbyssLibReLink`
 （都是 `@Mod(dist = CLIENT)`）里初始化，ReLink 的 mixin 配置也只有 `client` 段。
+
+**单装 ReLink / Atlas 时 `RUN` 崩 / 报 `NoClassDefFoundError: com/altnoir/abysslib/reginth/...`？**
+不应发生。这两个模块的运行时代码一个类都不引用 reginth，已实测：单独装 `AbyssLib-ReLink`（服务端 + 客户端）
+与 `AbyssLib-Atlas`（服务端）均能正常启动，0 报错、0 缺类、0 mixin 失败。若确实遇到：
+
+1. 确认你写的类有没有 `implements DataProvider` / `extends ALModelDefinitionProvider` / 调 `ALStructureDatagen` ——
+   这些只在 `GatherDataEvent`（`runData`）里才会被加载，游戏内不会；
+2. 确认没有把 `AbyssLib-Reginth` 写成 `implementation` 却又在 `neoforge.mods.toml` 里要求它 ——
+   玩家侧不需要装它，`mods.toml` 也不应声明这个依赖；
+3. 清一次 `run/` 与 `build/` 再试（旧 jar 的残留会误导）。
+
+**datagen（`runData`）报 `找不到符号: BlockEntry` / `AbstractReginth`？** 说明你的工程编译期看不见 Reginth。
+用聚合包时不该出现；单装 ReLink / Atlas 时补 `compileOnly("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")`，
+或改用手写 JSON（见 [§0.2](#02-reginth-是可选依赖)）。
 
 ---
 
@@ -839,7 +903,7 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 | 版本 | 变更 |
 |---|---|
 | *0.x 时代*（旧编号） | 单模组时期：1.2.0 jarJar 内置 Registrate + 分区创造栏 → 1.3.0 源码内置模型加载器（命名空间 `abysslib`）→ 1.4.0 源码内置注册框架 `Reginth`、移除外部依赖与 jarJar（**破坏性**）→ 1.4.5 结构放宽 + per-chunk |
-| **1.0.0** | **首个正式版 / 模块化**：拆成 `AbyssLib-Reginth` / `AbyssLib-ReLink` / `AbyssLib-Atlas` 三个**可单独安装**的模组 + 聚合包 `AbyssLib`；模型命名空间 `abysslib:` → **`relink:`**、结构命名空间 `abysslib:` → **`atlas:`**（**破坏性**，见 [§6.3](#63-迁移到-100模块化--命名空间改名破坏性)）；新增上游 Athena 写法兼容层（见 [§3.6](#36-兼容上游-athena-写法)） |
+| **1.0.0** | **首个正式版 / 模块化**：拆成 `AbyssLib-Reginth` / `AbyssLib-ReLink` / `AbyssLib-Atlas` 三个**可单独安装**的模组 + 聚合包 `AbyssLib`；模型命名空间 `abysslib:` → **`relink:`**、结构命名空间 `abysslib:` → **`atlas:`**（**破坏性**，见 [§6.3](#63-迁移到-100模块化--命名空间改名破坏性)）；新增上游 Athena 写法兼容层（见 [§3.6](#36-兼容上游-athena-写法)）；ReLink / Atlas 不再内嵌 Reginth（改为 `compileOnly`，datagen 助手变成**可选依赖**，见 [§0.2](#02-reginth-是可选依赖)），聚合包 740 KB → **356 KB** |
 
 **分支**（按 MC 线分开维护）：
 
@@ -880,6 +944,11 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 > 另外 `atlas:per_chunk` 继承自原版 `RandomSpreadStructurePlacement`，所以 `/locate structure` 正常工作。
 
 ### 9.2 用 datagen 生成（推荐，走 reginth）
+
+> **前置条件**：`ALStructureDatagen#register` 的签名里用了 Reginth 的 `AbstractReginth` / `DataProviderInitializer`，
+> 所以**你的工程编译期需要 Reginth 可见**。用聚合包 `AbyssLib` 时它随 POM 传递，开箱可用；单装
+> `AbyssLib-Atlas` 时请自行加 `compileOnly("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")`，
+> 否则改用 [§9.3](#93-手写-json-的等价形式) 的手写 JSON。见 [§0.2](#02-reginth-是可选依赖)。
 
 **不需要**自己写 `DatapackBuiltinEntriesProvider`：reginth 已经内置了这条通道。
 
