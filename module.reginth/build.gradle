@@ -1,0 +1,22 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+base {
+    archivesName = 'AbyssLib-Reginth'
+}
+
+neoForge {
+    version = project.neo_version
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    // Reginth 是底座：注册框架的源码就在本模块里，没有任何 AbyssLib 内部依赖，
+    // 也不再依赖上游 com.tterrag.registrate（包名与类名都已改为本库命名空间）。
+}

@@ -1,0 +1,22 @@
+package com.altnoir.abysslib.reginth.builders;
+
+import com.altnoir.abysslib.reginth.AbstractReginth;
+import com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier;
+
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+
+public class NoConfigBuilder<R, T extends R, P> extends AbstractBuilder<R, T, P, NoConfigBuilder<R, T, P>> {
+    
+    private final NonNullSupplier<T> factory;
+
+    public NoConfigBuilder(AbstractReginth<?> owner, P parent, String name, BuilderCallback callback, ResourceKey<? extends Registry<R>> registryType, NonNullSupplier<T> factory) {
+        super(owner, parent, name, callback, registryType);
+        this.factory = factory;
+    }
+
+    @Override
+    protected T createEntry() {
+        return factory.get();
+    }
+}

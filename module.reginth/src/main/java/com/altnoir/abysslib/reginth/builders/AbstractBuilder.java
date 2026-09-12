@@ -1,0 +1,194 @@
+package com.altnoir.abysslib.reginth.builders;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.altnoir.abysslib.reginth.AbstractReginth;
+import com.altnoir.abysslib.reginth.providers.ProviderType;
+import com.altnoir.abysslib.reginth.providers.ReginthLangProvider;
+import com.altnoir.abysslib.reginth.providers.ReginthTagsProvider;
+import com.altnoir.abysslib.reginth.util.entry.LazyRegistryEntry;
+import com.altnoir.abysslib.reginth.util.entry.RegistryEntry;
+import com.altnoir.abysslib.reginth.util.nullness.NonNullBiFunction;
+import com.altnoir.abysslib.reginth.util.nullness.NonNullFunction;
+import com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier;
+import net.minecraft.core.Registry;
+import net.minecraft.data.tags.TagsProvider;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagEntry;
+import net.minecraft.tags.TagKey;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import java.util.Arrays;
+
+/**
+ * Base class which most builders should extend, instead of implementing [@link {@link Builder} directly.
+ * <p>
+ * Provides the most basic functionality, and some utility methods that remove the need to pass the registry class.
+ *
+ * @param <R>
+ *            Type of the registry for the current object. This is the concrete base class that all registry entries must extend, and the type used for the forge registry itself.
+ * @param <T>
+ *            Actual type of the object being built.
+ * @param <P>
+ *            Type of the parent object, this is returned from {@link #build()} and {@link #getParent()}.
+ * @param <S>
+ *            Self type
+ * @see Builder
+ */
+public abstract class AbstractBuilder<R, T extends R, P, S extends AbstractBuilder<R, T, P, S>> implements Builder<R, T, P, S> {
+    private final AbstractReginth<?> owner;
+    private final P parent;
+    private final String name;
+    private final BuilderCallback callback;
+    private final ResourceKey<? extends Registry<R>> registryKey;
+    private final Multimap<ProviderType<? extends ReginthTagsProvider<?>>, TagKey<?>> tagsByType = HashMultimap.create();
+    /**
+     * A supplier for the entry that will discard the reference to this builder after it is resolved
+     */
+    private final LazyRegistryEntry<R, T> safeSupplier = new LazyRegistryEntry<>(this);
+    /**
+     * Indicates whether this entry should generate tags as optional tag
+     */
+    private boolean isOptional = false;
+
+    /**
+     * Create the built entry. This method will be lazily resolved at registration time, so it is safe to bake in values from the builder.
+     *
+     * @return The built entry
+     */
+    @SuppressWarnings("null")
+    protected abstract T createEntry();
+
+    @Override
+    public RegistryEntry<R, T> register() {
+        return callback.accept(name, registryKey, this, this::createEntry, this::createEntryWrapper);
+    }
+
+    protected RegistryEntry<R, T> createEntryWrapper(DeferredHolder<R, T> delegate) {
+        return new RegistryEntry<>(getOwner(), delegate);
+    }
+
+    @Override
+    public NonNullSupplier<T> asSupplier() {
+        return safeSupplier;
+    }
+
+    /**
+     * Tag this entry with a tag (or tags) of the correct type. Multiple calls will add additional tags.
+     *
+     * @param type
+     *            The provider type (which must be a tag provider)
+     * @param tags
+     *            The tags to add
+     * @return this {@link Builder}
+     */
+    @SuppressWarnings("unchecked")
+    @SafeVarargs
+    public final <TP extends TagsProvider<R> & ReginthTagsProvider<R>> S tag(ProviderType<? extends TP> type, TagKey<R>... tags) {
+        if (!tagsByType.containsKey(type)) {
+            setData(type, (ctx, prov) -> tagsByType.get(type).stream().map(t -> (TagKey<R>) t).map(prov::rawBuilder).forEach(b -> b.add(asTag())));
+        }
+        tagsByType.putAll(type, Arrays.asList(tags));
+        return (S) this;
+    }
+
+    /**
+     * Mark this entry as optional when generating tags
+     */
+    @SuppressWarnings("unchecked")
+    public S asOptional() {
+        isOptional = true;
+        return (S) this;
+    }
+
+    protected TagEntry asTag() {
+        Identifier id = Identifier.fromNamespaceAndPath(getOwner().getModid(), getName());
+        if (isOptional) return TagEntry.optionalElement(id);
+        return TagEntry.element(id);
+    }
+
+    /**
+     * Remove a tag (or tags) from this entry of a given type. Useful to remove default tags on fluids, for example. Multiple calls will remove additional tags.
+     *
+     * @param type
+     *            The provider type (which must be a tag provider)
+     * @param tags
+     *            The tags to remove
+     * @return this {@link Builder}
+     */
+    @SuppressWarnings("unchecked")
+    @SafeVarargs
+    public final <TP extends TagsProvider<R> & ReginthTagsProvider<R>> S removeTag(ProviderType<TP> type, TagKey<R>... tags) {
+        if (tagsByType.containsKey(type)) {
+            for (TagKey<R> tag : tags) {
+                tagsByType.remove(type, tag);
+            }
+        }
+        return (S) this;
+    }
+
+    /**
+     * Set the lang key for this entry to the default value (specified by {@link ReginthLangProvider#getAutomaticName(NonNullSupplier, ResourceKey)}). Generally, specific helpers from concrete
+     * builders should be used instead.
+     *
+     * @param langKeyProvider
+     *            A function to get the translation key from the entry
+     * @return this {@link Builder}
+     */
+    public S lang(NonNullFunction<T, String> langKeyProvider) {
+        return lang(langKeyProvider, (p, t) -> p.getAutomaticName(t, getRegistryKey()));
+    }
+
+    /**
+     * Set the lang key for this entry to the specified name. Generally, specific helpers from concrete builders should be used instead.
+     *
+     * @param langKeyProvider
+     *            A function to get the translation key from the entry
+     * @param name
+     *            The name to use
+     * @return this {@link Builder}
+     */
+    public S lang(NonNullFunction<T, String> langKeyProvider, String name) {
+        return lang(langKeyProvider, (p, s) -> name);
+    }
+
+    private S lang(NonNullFunction<T, String> langKeyProvider, NonNullBiFunction<ReginthLangProvider, NonNullSupplier<? extends T>, String> localizedNameProvider) {
+        return setData(ProviderType.LANG, (ctx, prov) -> prov.add(langKeyProvider.apply(ctx.getEntry()), localizedNameProvider.apply(prov, ctx::getEntry)));
+    }
+
+    public ResourceKey<R> getResourceKey() {
+        return ResourceKey.create(getRegistryKey(), Identifier.fromNamespaceAndPath(getOwner().getModid(), getName()));
+    }
+
+    public AbstractBuilder(final AbstractReginth<?> owner, final P parent, final String name, final BuilderCallback callback, final ResourceKey<? extends Registry<R>> registryKey) {
+        this.owner = owner;
+        this.parent = parent;
+        this.name = name;
+        this.callback = callback;
+        this.registryKey = registryKey;
+    }
+
+    @Override
+    public AbstractReginth<?> getOwner() {
+        return this.owner;
+    }
+
+    @Override
+    public P getParent() {
+        return this.parent;
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
+    }
+
+    protected BuilderCallback getCallback() {
+        return this.callback;
+    }
+
+    @Override
+    public ResourceKey<? extends Registry<R>> getRegistryKey() {
+        return this.registryKey;
+    }
+}

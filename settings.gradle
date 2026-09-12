@@ -9,3 +9,14 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+// 模块化：一个仓库、功能模块 + 一个聚合包（与 1.21.1 线同形制）。
+// 目录名用 module.<name>（点号），随后把 Gradle 项目名改成 Maven artifactId，
+// 这样 `project(':AbyssLib-Reginth')` 与发布坐标天然一致。
+//
+// 26.1 线目前只有注册框架：relink（模型加载器）与 atlas（结构扩展）尚未移植。
+include 'module.reginth'
+include 'module.main'
+
+project(':module.reginth').name = 'AbyssLib-Reginth'
+project(':module.main').name = 'AbyssLib'

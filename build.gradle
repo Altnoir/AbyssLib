@@ -1,102 +1,81 @@
-import java.nio.charset.StandardCharsets
-
 plugins {
-    id 'idea'
-    id 'java-library'
-    id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.143'
+    // 版本在根 build.gradle 声明一次，子项目只引用 id
+    id 'net.neoforged.moddev' version '2.0.143' apply false
 }
 
-tasks.named('wrapper', Wrapper).configure {
-    distributionType = Wrapper.DistributionType.BIN
-}
+// ---------------------------------------------------------------------------
+// 所有子模块共享的构建约定。
+// 每个模块自己的 build.gradle 只写差异部分（mod_id / 依赖 / 是否有 run 配置）。
+// ---------------------------------------------------------------------------
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'idea'
 
-version = mod_version
-group = mod_group_id
+    group = mod_group_id
+    version = mod_version
 
-repositories {
-    mavenLocal()
-    maven { url = "https://maven.gegy.dev/releases" } // Registrate（26.1 线：MC26.1-1.5.7）
-}
-
-base {
-    archivesName = mod_id
-}
-
-// NeoForge 26.1.2 / Java 25
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
-
-neoForge {
-    version = project.neo_version
-
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-    }
-}
-
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-dependencies {
-    // 内置 Registrate：本库是它的唯一提供者（运行时 jarJar 内嵌）。
-    implementation jarJar("com.tterrag.registrate:Registrate:${registrate_version}")
-    // api：把 Registrate 暴露给消费方编译期（module metadata / POM 以 compile 作用域传递），
-    // 消费方无需再自行声明 Registrate；运行仍只由本库 jarJar 提供。
-    api "com.tterrag.registrate:Registrate:${registrate_version}"
-    // 说明：Simple Bedrock Model 不再由本库内置（26.1 无公开 maven 坐标，文件依赖也无法进入
-    // 发布元数据）。需要 SBM 的模组自行以本地 libs/jarJar 提供。
-}
-
-var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
-    // 模板过滤统一使用 UTF-8（expand 读写）
-    filteringCharset = 'UTF-8'
-    var replaceProperties = [
-            minecraft_version      : minecraft_version,
-            minecraft_version_range: minecraft_version_range,
-            neo_version            : neo_version,
-            neo_version_range      : neo_version_range,
-            loader_version_range   : loader_version_range,
-            mod_id                 : mod_id,
-            mod_name               : mod_name,
-            mod_license            : mod_license,
-            mod_version            : mod_version,
-            mod_authors            : mod_authors,
-            mod_description        : mod_description,
-    ]
-    inputs.properties replaceProperties
-    expand replaceProperties
-    from "src/main/templates"
-    into "build/generated/sources/modMetadata"
-}
-sourceSets.main.resources.srcDir generateModMetadata
-neoForge.ideSyncTask generateModMetadata
-
-// 发布到本地仓库，供 26.1 线消费方（Made-In-Abyss-26.1 / PoopSky-26.1.2 等）引用
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            from components.java
-        }
-    }
     repositories {
-        maven {
-            url = file("${project.projectDir}/repo")
+        mavenLocal()
+        mavenCentral()
+    }
+
+    // NeoForge 26.1.2 / Java 25
+    java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(ProcessResources).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+
+    // neoForge.mods.toml 的占位符展开
+    tasks.named('processResources', ProcessResources).configure {
+        var replaceProperties = [
+                minecraft_version      : minecraft_version,
+                minecraft_version_range: minecraft_version_range,
+                neo_version_range      : neo_version_range,
+                loader_version_range   : loader_version_range,
+                mod_id                 : mod_id,
+                mod_name               : mod_name,
+                mod_license            : mod_license,
+                mod_version            : mod_version,
+                mod_authors            : mod_authors,
+                mod_description        : mod_description,
+        ]
+        inputs.properties replaceProperties
+
+        filesMatching(['META-INF/neoforge.mods.toml']) {
+            expand replaceProperties
         }
     }
-}
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-}
+    // 防护：本库是纯代码前置库，不向发布产物里塞原版资源覆盖（assets/minecraft/**）。
+    // 与 1.21.1 线一致（那边曾因调试残留的 blockstate 覆盖把原版草方块替换掉）。
+    tasks.named('jar', Jar).configure {
+        exclude 'assets/minecraft/**'
+    }
 
-tasks.withType(ProcessResources).configureEach {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
+    // 发布到本地仓库，供 26.1 线消费方引用（先在 26.1 worktree 下 ./gradlew publish）
+    publishing {
+        publications {
+            register('mavenJava', MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            maven {
+                url = rootProject.file('repo')
+            }
+        }
+    }
 
-idea {
-    module {
-        downloadSources = true
-        downloadJavadoc = true
+    idea {
+        module {
+            downloadSources = true
+            downloadJavadoc = true
+        }
     }
 }
