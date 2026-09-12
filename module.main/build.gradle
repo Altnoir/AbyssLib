@@ -59,6 +59,10 @@ dependencies {
     // 聚合包本身不含业务代码：它把三个模块的 jar 全部内嵌（jarJar），
     // 用户只装这一个 jar 就能得到完整功能；开发者也可以只依赖单个模块。
     // api 让消费方在编译期同时看到全部模块的类型。
+    //
+    // 注意：ReLink / Atlas 对 Reginth 只有 datagen 期的 compileOnly 依赖（不内嵌，见各自 build.gradle），
+    // 它们**不**把 Reginth 传递进来 —— 这里必须显式内嵌 Reginth，否则聚合包的消费方
+    // 在用到 datagen 助手时会编译失败。三行都必要，别顺手删。
     jarJar(api project(':AbyssLib-Reginth'))
     jarJar(api project(':AbyssLib-ReLink'))
     jarJar(api project(':AbyssLib-Atlas'))
