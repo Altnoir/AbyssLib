@@ -76,7 +76,11 @@ subprojects {
 
         repositories {
             maven {
-                url = rootProject.file('repo')
+                url = "https://maven.ringlo.im"
+                credentials {
+                    username = providers.environmentVariable("MAVEN_USERNAME").orNull
+                    password = providers.environmentVariable("MAVEN_PASSWORD").orNull
+                }
             }
         }
     }
