@@ -18,8 +18,12 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building project'
-                sh './gradlew build'
+                withCredentials([
+                    usernamePassword(credentialsId: 'JENKINS_MAVEN', usernameVariable: 'MAVEN_USERNAME', passwordVariable: 'MAVEN_PASSWORD')
+                ]) {
+                    echo 'Building project'
+                    sh './gradlew build publish'
+                }
             }
         }
     }
