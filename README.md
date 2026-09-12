@@ -848,7 +848,7 @@ AbyssLib/ReLink: emissive overlay enabled for '<blockstate>' (base=..., overlay=
 | `1.21.1-NeoForge`（本文档）`D:\Minecraft\ModDev\AbyssLib` | NeoForge 1.21.1 / Java 21 | **模块化多项目**；源码内置 `Reginth`（1.4.0 起）与模型加载器（1.3.0 起）；命名空间 `relink:` / `atlas:`（1.0.0 起） |
 | `26.1.2-NeoForge`（worktree）`D:\Minecraft\ModDev\AbyssLib-26.1.2` | NeoForge 26.1.2.94 / Java 25 | 仍是**单项目**；以外部依赖方式使用 Registrate `MC26.1-1.5.7`；分区栏为 MIA-26.1 模型；**暂未内置模型加载器，也未内置注册框架，尚未模块化** |
 
-**许可**：本库自身代码为 **MIT**，见 [`LICENSE`](LICENSE)（`Copyright (c) 2025 Altnoir`）。
+**许可**：本库自身代码为 **MIT**，见 [`LICENSE`](LICENSE)（`Copyright (c) 2026 Altnoir`）。
 
 内置的第三方源码各有其原始版权人，署名与许可：
 
