@@ -1,37 +1,39 @@
 plugins {
-    // 版本在根 build.gradle 声明一次，子项目只引用 id
     id 'net.neoforged.moddev' version '2.0.141' apply false
 }
-
-// ---------------------------------------------------------------------------
-// 所有子模块共享的构建约定。
-// 每个模块自己的 build.gradle 只写差异部分（mod_id / 依赖 / 是否有 run 配置）。
-// ---------------------------------------------------------------------------
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'idea'
 
     group = mod_group_id
-    version = mod_version
+
+    String buildNumber = System.getenv('BUILD_NUMBER')
+    boolean dev = System.getenv('RELEASE') == null || System.getenv('RELEASE') == 'false'
+
+    version = mod_version + (dev && buildNumber != null ? "-${buildNumber}" : "")
 
     repositories {
         mavenLocal()
         mavenCentral()
     }
 
-    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+        withSourcesJar()
+        withJavadocJar()
+    }
 
     tasks.withType(JavaCompile).configureEach {
-        options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+        options.encoding = 'UTF-8'
     }
 
     tasks.withType(ProcessResources).configureEach {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
-
-    // neoForge.mods.toml 的占位符展开 + 许可随分发一同打包。
-    // （MIT 要求再分发时保留版权与许可声明，LICENSE 会被复制进 META-INF/）
+    
     tasks.named('processResources', ProcessResources).configure {
         var replaceProperties = [
                 minecraft_version      : minecraft_version,
@@ -41,32 +43,33 @@ subprojects {
                 mod_id                 : mod_id,
                 mod_name               : mod_name,
                 mod_license            : mod_license,
-                mod_version            : mod_version,
-                mod_authors            : mod_authors,
+                mod_version            : version,
+                mod_authors             : mod_authors,
                 mod_description        : mod_description,
         ]
+
         inputs.properties replaceProperties
+
         filesMatching(['META-INF/neoforge.mods.toml']) {
             expand replaceProperties
         }
+
         from(rootProject.file('LICENSE')) {
             into 'META-INF'
         }
     }
-
-    // 防护：本库是纯代码前置库，不向发布产物里塞原版资源覆盖（assets/minecraft/**）。
-    // 起因：本地调试用的 blockstate 覆盖曾残留在 build 输出中，导致原版方块被替换。
+    
     tasks.named('jar', Jar).configure {
         exclude 'assets/minecraft/**'
     }
 
-    // 发布到本地仓库，供 PoopSky / PoopSky-FilthDomain 等依赖本库的模组使用
     publishing {
         publications {
             register('mavenJava', MavenPublication) {
                 from components.java
             }
         }
+
         repositories {
             maven {
                 url = rootProject.file('repo')
