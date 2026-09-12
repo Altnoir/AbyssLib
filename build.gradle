@@ -76,7 +76,7 @@ subprojects {
 
         repositories {
             maven {
-                url = "https://maven.ringlo.im"
+                url = "https://maven.ringlo.im/releases"
                 credentials {
                     username = providers.environmentVariable("MAVEN_USERNAME").orNull
                     password = providers.environmentVariable("MAVEN_PASSWORD").orNull
