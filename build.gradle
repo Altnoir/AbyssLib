@@ -31,7 +31,8 @@ subprojects {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
-    // neoForge.mods.toml 的占位符展开
+    // neoForge.mods.toml 的占位符展开 + 许可随分发一同打包。
+    // （MIT 要求再分发时保留版权与许可声明，LICENSE 会被复制进 META-INF/）
     tasks.named('processResources', ProcessResources).configure {
         var replaceProperties = [
                 minecraft_version      : minecraft_version,
@@ -49,6 +50,10 @@ subprojects {
 
         filesMatching(['META-INF/neoforge.mods.toml']) {
             expand replaceProperties
+        }
+
+        from(rootProject.file('LICENSE')) {
+            into 'META-INF'
         }
     }
 

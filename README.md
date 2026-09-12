@@ -170,5 +170,6 @@ side = "BOTH"
   实际用的是 mixin `@Shadow`，该 AT **可能是历史遗留**（未清理，保留以零风险；确认无用后可删）。
 - 分区每占用一整个标题行（displayItems 内为真实 EMPTY 占位）；滚动行号公式与 26.1 `ItemPickerMenu` 一致。
 - 数据生成注意：多模组并存时 Registrate 的 unassociated BLOCK_TAGS 生成器存在并发竞态，世界生成标签建议用自定义 DataProvider 在 addTags 阶段直填。
-- 本分支**没有 `LICENSE` 文件**（1.21.1 分支有）。若要给 26.1 产物附许可声明，需要先把 `LICENSE`
-  加到本分支，并在根 `build.gradle` 的 `processResources` 里复制进 `META-INF/`。
+- **许可**：本库自身代码为 **MIT**，见根目录 [`LICENSE`](LICENSE)（`Copyright (c) 2025 Altnoir`）。
+  该文件由根 `build.gradle` 的 `processResources` 复制进每个模块产物的 `META-INF/LICENSE`
+  （MIT 要求再分发时保留版权与许可声明，**不要**从 build 配置里删掉那段）。
