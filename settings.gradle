@@ -10,15 +10,29 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-// 模块化：一个仓库、三个功能模组 + 一个聚合包。
-// 目录名用 module.<name>（点号），随后把 Gradle 项目名改成 Maven artifactId，
-// 这样 `project(':AbyssLib-ReLink')` 与发布坐标天然一致（照 AnvilLib 的做法）。
+// Modular layout: one repository, three feature mods + one aggregate.
+// Directories are named module.<name> (with a dot); the Gradle project name is then
+// set to the Maven artifactId, so `project(':abysslib-relink-1.21.1')` and the
+// published coordinate are naturally the same thing (same idea as AnvilLib).
+//
+// The MC-line suffix comes from mod_mc_suffix in the root gradle.properties: it is the
+// single source of truth, so opening a new Minecraft line only requires editing that one
+// value. It also keeps the two MC lines from ever publishing to the same coordinates
+// (same group + same mod_version, different Minecraft version).
+def rootProps = new Properties()
+new File(settingsDir, 'gradle.properties').withInputStream { rootProps.load(it) }
+def mcSuffix = rootProps.getProperty('mod_mc_suffix')
+if (mcSuffix == null || mcSuffix.isEmpty()) {
+    throw new GradleException("mod_mc_suffix is missing from gradle.properties; " +
+            "it is required so the MC lines cannot collide in the Maven repository.")
+}
+
 include 'module.reginth'
 include 'module.relink'
 include 'module.atlas'
 include 'module.main'
 
-project(':module.reginth').name = 'AbyssLib-Reginth'
-project(':module.relink').name = 'AbyssLib-ReLink'
-project(':module.atlas').name = 'AbyssLib-Atlas'
-project(':module.main').name = 'AbyssLib'
+project(':module.reginth').name = "abysslib-reginth${mcSuffix}"
+project(':module.relink').name = "abysslib-relink${mcSuffix}"
+project(':module.atlas').name = "abysslib-atlas${mcSuffix}"
+project(':module.main').name = "abysslib${mcSuffix}"

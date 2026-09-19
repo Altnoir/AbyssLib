@@ -2,9 +2,10 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
-base {
-    archivesName = 'AbyssLib'
-}
+// Deliberately no `base { archivesName = ... }`: the Gradle project name IS the full
+// Maven artifactId (assigned in settings.gradle from mod_mc_suffix), and that value is
+// also archivesName's default -- so the jar filename and the published coordinate can
+// never drift apart.
 
 neoForge {
     version = project.neo_version
@@ -63,7 +64,8 @@ dependencies {
     // 注意：ReLink / Atlas 对 Reginth 只有 datagen 期的 compileOnly 依赖（不内嵌，见各自 build.gradle），
     // 它们**不**把 Reginth 传递进来 —— 这里必须显式内嵌 Reginth，否则聚合包的消费方
     // 在用到 datagen 助手时会编译失败。三行都必要，别顺手删。
-    jarJar(api project(':AbyssLib-Reginth'))
-    jarJar(api project(':AbyssLib-ReLink'))
-    jarJar(api project(':AbyssLib-Atlas'))
+    // 项目名带 MC 线后缀（mod_mc_suffix），用属性插值以免把 "1.21.1" 硬编码三遍。
+    jarJar(api project(":abysslib-reginth${mod_mc_suffix}"))
+    jarJar(api project(":abysslib-relink${mod_mc_suffix}"))
+    jarJar(api project(":abysslib-atlas${mod_mc_suffix}"))
 }
