@@ -2,9 +2,10 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
-base {
-    archivesName = 'AbyssLib-Reginth'
-}
+// Deliberately no `base { archivesName = ... }`: the Gradle project name IS the full
+// Maven artifactId (assigned in settings.gradle from mod_mc_suffix), and that value is
+// also archivesName's default -- so the jar filename and the published coordinate can
+// never drift apart.
 
 neoForge {
     version = project.neo_version

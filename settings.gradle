@@ -10,13 +10,27 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-// 模块化：一个仓库、功能模块 + 一个聚合包（与 1.21.1 线同形制）。
-// 目录名用 module.<name>（点号），随后把 Gradle 项目名改成 Maven artifactId，
-// 这样 `project(':AbyssLib-Reginth')` 与发布坐标天然一致。
+// Modular layout: one repository, feature modules + one aggregate (same shape as the
+// 1.21.1 line). Directories are named module.<name> (with a dot); the Gradle project name
+// is then set to the Maven artifactId, so `project(':abysslib-reginth-26.1.2')` and the
+// published coordinate are naturally the same thing.
 //
-// 26.1 线目前只有注册框架：relink（模型加载器）与 atlas（结构扩展）尚未移植。
+// The MC-line suffix comes from mod_mc_suffix in the root gradle.properties: it is the
+// single source of truth and it keeps this line from ever publishing to the same
+// coordinates as the 1.21.1 line (same group + same mod_version, different Minecraft).
+//
+// The 26.1 line currently ships the registration framework only: relink (model loader)
+// and atlas (structure extension) have not been ported yet.
+def rootProps = new Properties()
+new File(settingsDir, 'gradle.properties').withInputStream { rootProps.load(it) }
+def mcSuffix = rootProps.getProperty('mod_mc_suffix')
+if (mcSuffix == null || mcSuffix.isEmpty()) {
+    throw new GradleException("mod_mc_suffix is missing from gradle.properties; " +
+            "it is required so the MC lines cannot collide in the Maven repository.")
+}
+
 include 'module.reginth'
 include 'module.main'
 
-project(':module.reginth').name = 'AbyssLib-Reginth'
-project(':module.main').name = 'AbyssLib'
+project(':module.reginth').name = "abysslib-reginth${mcSuffix}"
+project(':module.main').name = "abysslib${mcSuffix}"

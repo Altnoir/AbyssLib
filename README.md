@@ -17,10 +17,16 @@ Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / modd
 
 与 1.21.1 线同形制：一个 Gradle 多项目，拆成「功能模块 + 聚合包」。
 
-| 模块 | 坐标（group `com.altnoir.abysslib`） | modid | 内容 |
+| 模块 | artifactId（group `com.altnoir`） | modid | 内容 |
 |---|---|---|---|
-| **AbyssLib**（聚合） | `AbyssLib` | `abysslib` | 内嵌 `AbyssLib-Reginth` 的 jar（jarJar），**装这一个就等于装全部**；另含 `AbyssLib` 门面工具 |
-| **AbyssLib-Reginth** | `AbyssLib-Reginth` | `abysslib_reginth` | 注册框架 **`Reginth`**（源码级内嵌自上游 Registrate `MC26.1-1.5.7`，包名与类名已改）+ 分区式创造栏 |
+| **AbyssLib**（聚合） | `abysslib-26.1.2` | `abysslib` | 内嵌 `abysslib-reginth-26.1.2` 的 jar（jarJar），**装这一个就等于装全部**；另含 `AbyssLib` 门面工具 |
+| **AbyssLib-Reginth** | `abysslib-reginth-26.1.2` | `abysslib_reginth` | 注册框架 **`Reginth`**（源码级内嵌自上游 Registrate `MC26.1-1.5.7`，包名与类名已改）+ 分区式创造栏 |
+
+> **artifactId 里的 `-26.1.2` 是 MC 线标识，必须保留**。本库按 MC 版本分线，1.21.1 线的坐标是
+> `com.altnoir:abysslib-1.21.1` / `com.altnoir:abysslib-reginth-1.21.1`。两条线用**同一个 group 和同一个
+> `mod_version`**，如果 artifactId 不区分 MC 版本，两条线会落到**完全相同的坐标**上——后发布的会
+> **静默覆盖**先发布的，消费方拿到的就是错 MC 版本的 jar。后缀由根 `gradle.properties` 的
+> `mod_mc_suffix` 一处定义，`settings.gradle` 据此命名 Gradle 项目（项目名 == artifactId）。
 
 - 目录：`module.reginth/`、`module.main/`（详见仓库里的 `settings.gradle`）。
 - **不再依赖 `maven.gegy.dev` 的 Registrate**，也不再 `jarJar` / `api` 暴露它 —— 类就在本库 jar 里，天然单副本、无版本冲突。
@@ -29,14 +35,15 @@ Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / modd
 ## 构建 / 发布
 
 ```bash
-./gradlew build          # 两个 jar 分别在 module.*/build/libs/
-./gradlew publish        # 两个坐标一起发布到 repo/（本地仓库）
-./gradlew :AbyssLib:runClient    # run 配置只定义在聚合模块
-./gradlew :AbyssLib:runServer
+./gradlew build          # 两个 jar 分别在 module.*/build/libs/，文件名即坐标
+./gradlew publish        # 两个坐标一起发布到 maven.ringlo.im/releases（需要凭证）
+./gradlew :abysslib-26.1.2:runClient    # run 配置只定义在聚合模块
+./gradlew :abysslib-26.1.2:runServer
 ```
 
-> artifactId 由 Gradle 项目名决定（`settings.gradle` 里改名），坐标为
-> `com.altnoir.abysslib:AbyssLib:<版本>` 与 `com.altnoir.abysslib:AbyssLib-Reginth:<版本>`。
+> artifactId 由 Gradle 项目名决定（`settings.gradle` 里按 `mod_mc_suffix` 改名），坐标为
+> `com.altnoir:abysslib-26.1.2:<版本>` 与 `com.altnoir:abysslib-reginth-26.1.2:<版本>`。
+> 各模块 `build.gradle` 里**没有** `base { archivesName = ... }`——默认值就是项目名，jar 名与坐标不会对不上。
 
 > **跑 run 需要 Java 21 工具链**：ModDevGradle 的 `downloadAssets` 任务要求 Java 21，而工程本身target Java 25。
 > 本机已在 `GRADLE_USER_HOME/gradle.properties` 里用 `org.gradle.java.installations.paths` 指向 JDK-21；
@@ -146,11 +153,18 @@ repositories {
 }
 
 dependencies {
-    implementation("com.altnoir.abysslib:AbyssLib:1.0.0")          // 全套
-    // 或只依赖注册框架模块：implementation("com.altnoir.abysslib:AbyssLib-Reginth:1.0.0")
+    // 全套。坐标形如 com.altnoir:abysslib-<MC 版本>:<版本>，MC 后缀不能漏。
+    // 用 ${minecraft_version} 插值可以避免手写错：
+    implementation("com.altnoir:abysslib-${minecraft_version}:${abysslib_version}")
+    // 或只依赖注册框架模块：implementation("com.altnoir:abysslib-reginth-${minecraft_version}:${abysslib_version}")
     // 需要 SBM 的模组自行声明（本地 libs + jarJar / compileOnly），本库不提供。
 }
 ```
+
+> **坐标改过名（1.0.0，破坏性）**：以前是 `com.altnoir.abysslib:AbyssLib:<版本>`，
+> 现在是 `com.altnoir:abysslib-26.1.2:<版本>`。只有 `build.gradle` 里那一行要改——
+> modid（`abysslib`）、Java 包名（`com.altnoir.abysslib.**`）、`mods.toml` 里的 `modId` / `versionRange`
+> 全都不受影响。
 
 mods.toml 声明：
 
