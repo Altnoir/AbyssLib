@@ -112,9 +112,27 @@ public final class ALSectionedCreativeTabRenderer {
                 continue;
             }
             int y = GRID_TOP + visibleRow * ROW_HEIGHT;
-            drawBanner(graphics, y, tab.bannerStyle());
-            drawTitle(graphics, font, section.title(), y, tab.bannerStyle());
+            if (section.hasBannerTexture()) {
+                // 分区自带整行贴图（162×18）：贴图自成一体（含标题/底纹），不再叠代码文字。
+                drawFullRowTexture(graphics, y, section.bannerTexture());
+            } else {
+                drawBanner(graphics, y, tab.bannerStyle());
+                drawTitle(graphics, font, section.title(), y, tab.bannerStyle());
+            }
         }
+    }
+
+    /**
+     * 画分区自带的整行横幅贴图（162×18，1:1，不拉伸）。
+     * 只有 AbyssLib 自己的 {@code abysslib:} 预设贴图需要从类路径手工注册；
+     * 其它命名空间（如 {@code mia:}）走正常资源包加载。
+     */
+    private static void drawFullRowTexture(GuiGraphics graphics, int top, ResourceLocation texture) {
+        ensurePresetTexture(texture);
+        RenderSystem.setShaderTexture(0, texture);
+        graphics.blit(texture, GRID_LEFT, top, GRID_WIDTH, ROW_HEIGHT,
+                0.0F, 0.0F, GRID_WIDTH, ROW_HEIGHT, GRID_WIDTH, ROW_HEIGHT);
+        graphics.flush();
     }
 
     private static void drawBanner(GuiGraphics graphics, int top, ALBannerStyle style) {
