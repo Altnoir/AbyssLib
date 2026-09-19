@@ -13,7 +13,13 @@ subprojects {
     apply plugin: 'idea'
 
     group = mod_group_id
-    version = mod_version
+
+    // 与 1.21.1 线同一套版本策略：
+    //   RELEASE=true  -> 稳定的 <mod_version>，例如 1.0.0（消费方就写这个）
+    //   否则（CI 普通构建）-> <mod_version>-<BUILD_NUMBER>，例如 1.0.0-17（快照，可追溯）
+    String buildNumber = System.getenv('BUILD_NUMBER')
+    boolean dev = System.getenv('RELEASE') == null || System.getenv('RELEASE') == 'false'
+    version = mod_version + (dev && buildNumber != null ? "-${buildNumber}" : "")
 
     repositories {
         mavenLocal()
@@ -63,7 +69,9 @@ subprojects {
         exclude 'assets/minecraft/**'
     }
 
-    // 发布到本地仓库，供 26.1 线消费方引用（先在 26.1 worktree 下 ./gradlew publish）
+    // 发布到远端 Reposilite（与 1.21.1 线同一个仓库、同一套凭证）。
+    // 注意 url 必须带 /releases 段：Reposilite 寻址是 /<仓库名>/<group>/…，
+    // 少了这一段会把 group 的第一节当成仓库名并返回 403（1.21.1 线踩过，见 HANDOFF §0）。
     publishing {
         publications {
             register('mavenJava', MavenPublication) {
@@ -72,10 +80,16 @@ subprojects {
         }
         repositories {
             maven {
-                url = rootProject.file('repo')
+                url = "https://maven.ringlo.im/releases"
+                credentials {
+                    username = providers.environmentVariable("MAVEN_USERNAME").orNull
+                    password = providers.environmentVariable("MAVEN_PASSWORD").orNull
+                }
             }
         }
     }
+
+    // 本地 file 仓库（供本机消费方解析，仓库外的一次性 init 脚本会追加；见 HANDOFF §2）
 
     idea {
         module {
