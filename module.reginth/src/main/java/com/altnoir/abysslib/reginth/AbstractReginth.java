@@ -1,24 +1,20 @@
 package com.altnoir.abysslib.reginth;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
-import com.mojang.serialization.Codec;
+import com.altnoir.abysslib.reginth.builders.*;
+import com.altnoir.abysslib.reginth.builders.BlockEntityBuilder.BlockEntityFactory;
+import com.altnoir.abysslib.reginth.builders.MenuBuilder.ForgeMenuFactory;
+import com.altnoir.abysslib.reginth.builders.MenuBuilder.MenuFactory;
+import com.altnoir.abysslib.reginth.builders.MenuBuilder.ScreenFactory;
 import com.altnoir.abysslib.reginth.providers.*;
+import com.altnoir.abysslib.reginth.util.CreativeModeTabModifier;
+import com.altnoir.abysslib.reginth.util.DebugMarkers;
+import com.altnoir.abysslib.reginth.util.OneTimeEventReceiver;
+import com.altnoir.abysslib.reginth.util.entry.ItemEntry;
+import com.altnoir.abysslib.reginth.util.entry.RegistryEntry;
+import com.altnoir.abysslib.reginth.util.nullness.*;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.*;
+import com.mojang.serialization.Codec;
 import net.minecraft.Util;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
@@ -33,11 +29,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType.EntityFactory;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -54,35 +46,15 @@ import net.neoforged.neoforge.registries.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.message.Message;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ListMultimap;
-import com.altnoir.abysslib.reginth.builders.BlockBuilder;
-import com.altnoir.abysslib.reginth.builders.BlockEntityBuilder;
-import com.altnoir.abysslib.reginth.builders.BlockEntityBuilder.BlockEntityFactory;
-import com.altnoir.abysslib.reginth.builders.Builder;
-import com.altnoir.abysslib.reginth.builders.BuilderCallback;
-import com.altnoir.abysslib.reginth.builders.EntityBuilder;
-import com.altnoir.abysslib.reginth.builders.FluidBuilder;
-import com.altnoir.abysslib.reginth.builders.ItemBuilder;
-import com.altnoir.abysslib.reginth.builders.MenuBuilder;
-import com.altnoir.abysslib.reginth.builders.MenuBuilder.ForgeMenuFactory;
-import com.altnoir.abysslib.reginth.builders.MenuBuilder.MenuFactory;
-import com.altnoir.abysslib.reginth.builders.MenuBuilder.ScreenFactory;
-import com.altnoir.abysslib.reginth.builders.NoConfigBuilder;
-import com.altnoir.abysslib.reginth.util.CreativeModeTabModifier;
-import com.altnoir.abysslib.reginth.util.DebugMarkers;
-import com.altnoir.abysslib.reginth.util.OneTimeEventReceiver;
-import com.altnoir.abysslib.reginth.util.entry.ItemEntry;
-import com.altnoir.abysslib.reginth.util.entry.RegistryEntry;
-import com.altnoir.abysslib.reginth.util.nullness.NonNullBiFunction;
-import com.altnoir.abysslib.reginth.util.nullness.NonNullConsumer;
-import com.altnoir.abysslib.reginth.util.nullness.NonNullFunction;
-import com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier;
-import com.altnoir.abysslib.reginth.util.nullness.NonNullUnaryOperator;
-import com.altnoir.abysslib.reginth.util.nullness.NonnullType;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * Manages all registrations and data generators for a mod.
@@ -104,7 +76,7 @@ import com.altnoir.abysslib.reginth.util.nullness.NonnullType;
  *         .register();
  * }
  * </pre>
- *
+ * <p>
  * For specifics as to building different registry entries, read the documentation on their respective builders.
  */
 public abstract class AbstractReginth<S extends AbstractReginth<S>> {
@@ -172,7 +144,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
             if (this$delegate == null ? other$delegate != null : !this$delegate.equals(other$delegate)) return false;
             final Object this$callbacks = this.callbacks;
             final Object other$callbacks = other.callbacks;
-            if (this$callbacks == null ? other$callbacks != null : !this$callbacks.equals(other$callbacks)) return false;
+            if (this$callbacks == null ? other$callbacks != null : !this$callbacks.equals(other$callbacks))
+                return false;
             return true;
         }
 
@@ -239,8 +212,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Construct a new Reginth for the given mod ID.
      *
-     * @param modid
-     *            The mod ID for which objects will be registered
+     * @param modid The mod ID for which objects will be registered
      */
     protected AbstractReginth(String modid) {
         this.modid = modid;
@@ -261,8 +233,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * <p>
      * <i>Always</i> call {@code super} in your override unless you know what you are doing!
      *
-     * @param bus
-     *            The event bus
+     * @param bus The event bus
      * @return This {@link AbstractReginth} object
      */
     public S registerEventListeners(IEventBus bus) {
@@ -271,6 +242,14 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
         }
         Consumer<RegisterEvent> onRegister = this::onRegister;
         Consumer<RegisterEvent> onRegisterLate = this::onRegisterLate;
+        // 注意优先级**不要**改：这里用默认的 NORMAL，配合"Reginth 的监听器先于 DeferredRegister 注册"
+        // （MiaBlocks 的 REGINTH 字段在类初始化时就建好，BLOCKS.register(bus) 在构造函数里才调），
+        // 结果是 DeferredRegister 后跑 —— 于是 DeferredRegister 方块可以引用 Reginth 方块。
+        // 反过来（Reginth 引用 DeferredRegister 方块）会抛
+        // "Trying to access unbound value: ResourceKey[...]"。
+        // 教训（MIA 迁移实测）：**混用两种注册方式时交叉引用两个方向必有一个崩**，
+        // 所以迁移规则是"**底座先迁**"——绝不让 Reginth 方块引用还没迁移的 DeferredRegister 方块。
+        // 试过把这里改成 LOW，结果只是把报错从一类换成另一类（skyfog_pressure_plate 引用 skyfog_planks 崩）。
         bus.addListener(onRegister);
         bus.addListener(EventPriority.LOWEST, onRegisterLate);
         bus.addListener(this::onBuildCreativeModeTabContents); // Fired multiple times when ever tabs need contents rebuilt (changing op tab perms for example)
@@ -288,9 +267,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Called once per registry to gather collected registrations and add entries to the registry. May be overriden in custom implementations to perform additional actions upon entry registration, but
      * <i>must</i> call {@code super}.
-     * 
-     * @param event
-     *            The {@link RegisterEvent} being fired, use {@link RegisterEvent#getRegistryKey()} to query the registry type
+     *
+     * @param event The {@link RegisterEvent} being fired, use {@link RegisterEvent#getRegistryKey()} to query the registry type
      */
     protected void onRegister(RegisterEvent event) {
         ResourceKey<? extends Registry<?>> type = event.getRegistryKey();
@@ -327,9 +305,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Called once per registry at the {@link EventPriority#LOWEST lowest priority} to perform any actions that must happen after all other entries have been registered, including from other mods. May
      * be overriden in custom implementations to perform additional actions upon entry registration, but <i>must</i> call {@code super}.
-     * 
-     * @param event
-     *            The {@link RegisterEvent} being fired, use {@link RegisterEvent#getRegistryKey()} to query the registry type
+     *
+     * @param event The {@link RegisterEvent} being fired, use {@link RegisterEvent#getRegistryKey()} to query the registry type
      */
     protected void onRegisterLate(RegisterEvent event) {
         ResourceKey<? extends Registry<?>> type = event.getRegistryKey();
@@ -341,9 +318,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
 
     /**
      * Called when a {@link CreativeModeTab} is being populated to fill in any entries that belong there. Can be overriden in custom implementations.
-     * 
-     * @param event
-     *            The event
+     *
+     * @param event The event
      */
     protected void onBuildCreativeModeTabContents(BuildCreativeModeTabContentsEvent event) {
         var modifier = new CreativeModeTabModifier(event::getFlags, event::hasPermissions, event::accept, event::getParameters);
@@ -357,9 +333,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
 
     /**
      * Called when datagen begins to add our provider to the generator. Can be overriden in custom implementations.
-     * 
-     * @param event
-     *            The event
+     *
+     * @param event The event
      */
     protected void onData(GatherDataEvent event) {
         event.getGenerator().addProvider(true, provider = new ReginthDataProvider(this, modid, event));
@@ -369,8 +344,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Get the current name (from the last call to {@link #object(String)}), throwing an exception if it is not set.
      *
      * @return The current entry name
-     * @throws NullPointerException
-     *             if {@link #currentName} is null
+     * @throws NullPointerException if {@link #currentName} is null
      */
     protected String currentName() {
         String name = currentName;
@@ -393,17 +367,12 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * }
      * </pre>
      *
-     * @param <R>
-     *            The type of the registry for which to retrieve the entry
-     * @param <T>
-     *            The type of the entry to return
-     * @param type
-     *            A {@link ResourceKey} for the registry 
+     * @param <R>  The type of the registry for which to retrieve the entry
+     * @param <T>  The type of the entry to return
+     * @param type A {@link ResourceKey} for the registry
      * @return A {@link RegistryEntry} which will supply the requested entry, if it exists
-     * @throws IllegalArgumentException
-     *             if no such registration has been done
-     * @throws NullPointerException
-     *             if current name has not been set via {@link #object(String)}
+     * @throws IllegalArgumentException if no such registration has been done
+     * @throws NullPointerException     if current name has not been set via {@link #object(String)}
      */
     public <R, T extends R> RegistryEntry<R, T> get(ResourceKey<? extends Registry<R>> type) {
         return this.<R, T>get(currentName(), type);
@@ -425,17 +394,12 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * }
      * </pre>
      *
-     * @param <R>
-     *            The type of the registry for which to retrieve the entry
-     * @param <T>
-     *            The type of the entry to return
-     * @param name
-     *            The name of the registry entry to request
-     * @param type
-     *            A {@link ResourceKey} for the registry
+     * @param <R>  The type of the registry for which to retrieve the entry
+     * @param <T>  The type of the entry to return
+     * @param name The name of the registry entry to request
+     * @param type A {@link ResourceKey} for the registry
      * @return A {@link RegistryEntry} which will supply the requested entry, if it exists
-     * @throws IllegalArgumentException
-     *             if no such registration has been done
+     * @throws IllegalArgumentException if no such registration has been done
      */
     public <R, T extends R> RegistryEntry<R, T> get(String name, ResourceKey<? extends Registry<R>> type) {
         return this.<R, T>getRegistration(name, type).getDelegate();
@@ -444,14 +408,10 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Allows retrieval of a previously created entry that may or may not exist. Possibly useful in some very specific scenarios, internally used during fluid registration.
      *
-     * @param <R>
-     *            The type of the registry for which to retrieve the entry
-     * @param <T>
-     *            The type of the entry to return
-     * @param name
-     *            The name of the registry entry to request
-     * @param type
-     *            A class representing the registry type
+     * @param <R>  The type of the registry for which to retrieve the entry
+     * @param <T>  The type of the entry to return
+     * @param name The name of the registry entry to request
+     * @param type A class representing the registry type
      * @return A {@link RegistryEntry} which will supply the requested entry, if it exists
      */
     public <R, T extends R> Optional<RegistryEntry<R, T>> getOptional(String name, ResourceKey<? extends Registry<R>> type) {
@@ -477,11 +437,9 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Gather a collection of all entries registered for a certain registry
      * <p>
      * Note that this can be called before registration is complete, but the {@link RegistryEntry entries} will be empty at that time.
-     * 
-     * @param <R>
-     *            Registry type
-     * @param type
-     *            A {@link ResourceKey} for the registry in question
+     *
+     * @param <R>  Registry type
+     * @param type A {@link ResourceKey} for the registry in question
      * @return A collection of {@link RegistryEntry} objects representing all entries in the given registry which are known to this {@link AbstractReginth} object.
      */
     @SuppressWarnings({"null", "unchecked"})
@@ -491,17 +449,12 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
 
     /**
      * Add a callback to be invoked when a certain entry has been registered. This will be invoked <i>immediately</i> following registration, before further entries are registered.
-     * 
-     * @param <R>
-     *            Registry type
-     * @param <T>
-     *            Entry type
-     * @param name
-     *            The name of the entry to watch (implicitly within the {@link #getModid() modid} of this instance
-     * @param registryType
-     *            A {@link ResourceKey} for the registry in question
-     * @param callback
-     *            The callback to invoke, which will be passed the created entry object
+     *
+     * @param <R>          Registry type
+     * @param <T>          Entry type
+     * @param name         The name of the entry to watch (implicitly within the {@link #getModid() modid} of this instance
+     * @param registryType A {@link ResourceKey} for the registry in question
+     * @param callback     The callback to invoke, which will be passed the created entry object
      * @return This {@link AbstractReginth} instance
      */
     public <R, T extends R> S addRegisterCallback(String name, ResourceKey<? extends Registry<R>> registryType, NonNullConsumer<? super T> callback) {
@@ -516,13 +469,10 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
 
     /**
      * Add a callback to be invoked when a certain registry has fully completed registration, i.e. all objects of that type have been registered.
-     * 
-     * @param <R>
-     *            The registry type
-     * @param registryType
-     *            A {@link ResourceKey} for the registry in question
-     * @param callback
-     *            The callback to invoke
+     *
+     * @param <R>          The registry type
+     * @param registryType A {@link ResourceKey} for the registry in question
+     * @param callback     The callback to invoke
      * @return This {@link AbstractReginth} instance
      */
     public <R> S addRegisterCallback(ResourceKey<? extends Registry<R>> registryType, Runnable callback) {
@@ -532,11 +482,9 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
 
     /**
      * Check if a certain registry has completed registration.
-     * 
-     * @param <R>
-     *            The registry type
-     * @param registryType
-     *            A {@link ResourceKey} for the registry in question
+     *
+     * @param <R>          The registry type
+     * @param registryType A {@link ResourceKey} for the registry in question
      * @return {@code true} iff the given registry has finished the registration step
      */
     public <R> boolean isRegistered(ResourceKey<? extends Registry<R>> registryType) {
@@ -546,13 +494,10 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Get the data provider instance for a given {@link ProviderType}. Only works within datagen context, not during registration or init.
      *
-     * @param <P>
-     *            The type of the provider
-     * @param type
-     *            A {@link ProviderType} representing the desired provider
+     * @param <P>  The type of the provider
+     * @param type A {@link ProviderType} representing the desired provider
      * @return An {@link Optional} holding the provider, or empty if this provider was not registered. This can happen if datagen is run only for client or server providers.
-     * @throws IllegalStateException
-     *             if datagen has not started yet
+     * @throws IllegalStateException if datagen has not started yet
      */
     public <P extends ReginthProvider> Optional<P> getDataProvider(ProviderType<P> type) {
         ReginthDataProvider provider = this.provider;
@@ -565,16 +510,11 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Mostly internal, sets the data generator for a certain entry/type combination. This will replace an existing data gen callback if it exists.
      *
-     * @param <P>
-     *            The type of provider
-     * @param <R>
-     *            The registry type
-     * @param builder
-     *            The builder for the entry
-     * @param type
-     *            The {@link ProviderType} to generate data for
-     * @param cons
-     *            A callback to be invoked during data generation
+     * @param <P>     The type of provider
+     * @param <R>     The registry type
+     * @param builder The builder for the entry
+     * @param type    The {@link ProviderType} to generate data for
+     * @param cons    A callback to be invoked during data generation
      * @return this {@link AbstractReginth}
      */
     public <P extends ReginthProvider, R> S setDataGenerator(Builder<R, ?, ?, ?> builder, ProviderType<? extends P> type, NonNullConsumer<? extends P> cons) {
@@ -584,18 +524,12 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Mostly internal, sets the data generator for a certain entry/type combination. This will replace an existing data gen callback if it exists.
      *
-     * @param <P>
-     *            The type of provider
-     * @param <R>
-     *            The registry type
-     * @param entry
-     *            The name of the entry which the provider is for
-     * @param registryType
-     *            A {@link Class} representing the registry type of the entry
-     * @param type
-     *            The {@link ProviderType} to generate data for
-     * @param cons
-     *            A callback to be invoked during data generation
+     * @param <P>          The type of provider
+     * @param <R>          The registry type
+     * @param entry        The name of the entry which the provider is for
+     * @param registryType A {@link Class} representing the registry type of the entry
+     * @param type         The {@link ProviderType} to generate data for
+     * @param cons         A callback to be invoked during data generation
      * @return this {@link AbstractReginth}
      */
     public <P extends ReginthProvider, R> S setDataGenerator(String entry, ResourceKey<? extends Registry<R>> registryType, ProviderType<? extends P> type, NonNullConsumer<? extends P> cons) {
@@ -613,17 +547,15 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * <p>
      * This is useful to add data generator callbacks for miscellaneous data not strictly associated with an entry.
      *
-     * @param <T>
-     *            The type of provider
-     * @param type
-     *            The {@link ProviderType} to generate data for
-     * @param cons
-     *            A callback to be invoked during data generation
+     * @param <T>  The type of provider
+     * @param type The {@link ProviderType} to generate data for
+     * @param cons A callback to be invoked during data generation
      * @return this {@link AbstractReginth}
      */
     public <T extends ReginthProvider> S addDataGenerator(ProviderType<? extends T> type, NonNullConsumer<? extends T> cons) {
         if (doDatagen.get()) {
-            if (provider != null) throw new IllegalStateException("Cannot add data generator after construction of root generator");
+            if (provider != null)
+                throw new IllegalStateException("Cannot add data generator after construction of root generator");
             datagens.put(type, cons);
         }
         return self();
@@ -647,12 +579,9 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Add a custom translation mapping using the vanilla style of ResourceLocation -&gt; translation key conversion.
      *
-     * @param type
-     *            Type of the object, this is used as a prefix (e.g. {@code ["block", "mymod:myblock"] -> "block.mymod.myblock"})
-     * @param id
-     *            ID of the object, which will be converted to a lang key via {@link Util#makeDescriptionId(String, ResourceLocation)}
-     * @param localizedName
-     *            (English) translation value
+     * @param type          Type of the object, this is used as a prefix (e.g. {@code ["block", "mymod:myblock"] -> "block.mymod.myblock"})
+     * @param id            ID of the object, which will be converted to a lang key via {@link Util#makeDescriptionId(String, ResourceLocation)}
+     * @param localizedName (English) translation value
      * @return A {@link MutableComponent} representing the translated text
      */
     public MutableComponent addLang(String type, ResourceLocation id, String localizedName) {
@@ -662,14 +591,10 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Add a custom translation mapping using the vanilla style of ResourceLocation -&gt; translation key conversion. Also appends a suffix to the key.
      *
-     * @param type
-     *            Type of the object, this is used as a prefix (e.g. {@code ["block", "mymod:myblock"] -> "block.mymod.myblock"})
-     * @param id
-     *            ID of the object, which will be converted to a lang key via {@link Util#makeDescriptionId(String, ResourceLocation)}
-     * @param suffix
-     *            A suffix which will be appended to the generated key (separated by a dot)
-     * @param localizedName
-     *            (English) translation value
+     * @param type          Type of the object, this is used as a prefix (e.g. {@code ["block", "mymod:myblock"] -> "block.mymod.myblock"})
+     * @param id            ID of the object, which will be converted to a lang key via {@link Util#makeDescriptionId(String, ResourceLocation)}
+     * @param suffix        A suffix which will be appended to the generated key (separated by a dot)
+     * @param localizedName (English) translation value
      * @return A {@link MutableComponent} representing the translated text
      */
     public MutableComponent addLang(String type, ResourceLocation id, String suffix, String localizedName) {
@@ -679,10 +604,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Add a custom translation mapping directly to the lang provider.
      *
-     * @param key
-     *            The translation key
-     * @param value
-     *            The (English) translation value
+     * @param key   The translation key
+     * @param value The (English) translation value
      * @return A {@link MutableComponent} representing the translated text
      */
     public MutableComponent addRawLang(String key, String value) {
@@ -705,12 +628,9 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * For internal use, calls upon registered data generators to actually create their data.
      *
-     * @param <T>
-     *            The type of the provider
-     * @param type
-     *            The type of provider to run
-     * @param gen
-     *            The provider
+     * @param <T>  The type of the provider
+     * @param type The type of provider to run
+     * @param gen  The provider
      */
     @SuppressWarnings("unchecked")
     public <T extends ReginthProvider> void genData(ProviderType<? extends T> type, T gen) {
@@ -751,8 +671,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * <p>
      * <strong>Should only be used for debugging!</strong> {@code skipErrors(true)} will do nothing outside of a dev environment.
      *
-     * @param skipErrors
-     *            {@code true} to skip errors during registration/generation
+     * @param skipErrors {@code true} to skip errors during registration/generation
      * @return this {@link AbstractReginth}
      */
     public S skipErrors(boolean skipErrors) {
@@ -768,8 +687,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Begin a new object, this is typically used at the beginning of a builder chain. The given name will be used until this method is called again. This makes it simple to create multiple entries
      * with the same name, as is often the case with blocks/items, items/entities, and blocks/TEs.
      *
-     * @param name
-     *            The name to use for future entries
+     * @param name The name to use for future entries
      * @return this {@link AbstractReginth}
      */
     public S object(String name) {
@@ -781,9 +699,8 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Set the default CreativeModeTab to be passed onto future builders.
      * <p>
      * This special case method should be used if your creative tab instance was not created by Reginth, otherwise use {@link #defaultCreativeTab()}.
-     * 
-     * @param creativeModeTab
-     *            The new default CreativeModeTab type
+     *
+     * @param creativeModeTab The new default CreativeModeTab type
      * @return This {@link AbstractReginth} instance
      */
     public S defaultCreativeTab(ResourceKey<CreativeModeTab> creativeModeTab) {
@@ -801,7 +718,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Calling this method multiple times will add additional callbacks.
      *
      * @param creativeModeTab The {@link CreativeModeTab} to register this callback for
-     * @param modifier The modifier callback to be registered
+     * @param modifier        The modifier callback to be registered
      * @return This {@link AbstractReginth} instance
      */
     public S modifyCreativeModeTab(ResourceKey<CreativeModeTab> creativeModeTab, Consumer<CreativeModeTabModifier> modifier) {
@@ -820,8 +737,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * }
      * </pre>
      *
-     * @param func
-     *            The {@link UnaryOperator function} to apply
+     * @param func The {@link UnaryOperator function} to apply
      * @return this {@link AbstractReginth}
      */
     public S transform(NonNullUnaryOperator<S> func) {
@@ -841,16 +757,11 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * }
      * </pre>
      *
-     * @param <R>
-     *            Registry type
-     * @param <T>
-     *            Entry type
-     * @param <P>
-     *            Parent type
-     * @param <S2>
-     *            Self type
-     * @param func
-     *            The {@link Function function} to apply
+     * @param <R>  Registry type
+     * @param <T>  Entry type
+     * @param <P>  Parent type
+     * @param <S2> Self type
+     * @param func The {@link Function function} to apply
      * @return the resultant {@link Builder}
      */
     public <R, T extends R, P, S2 extends Builder<R, T, P, S2>> S2 transform(NonNullFunction<S, S2> func) {
@@ -862,16 +773,11 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * <p>
      * Uses the currently set name (via {@link #object(String)}) as the name for the new entry, and passes it to the factory as the first parameter.
      *
-     * @param <R>
-     *            Registry type
-     * @param <T>
-     *            Entry type
-     * @param <P>
-     *            Parent type
-     * @param <S2>
-     *            Self type
-     * @param factory
-     *            The factory to create the builder
+     * @param <R>     Registry type
+     * @param <T>     Entry type
+     * @param <P>     Parent type
+     * @param <S2>    Self type
+     * @param factory The factory to create the builder
      * @return The {@link Builder} instance
      */
     public <R, T extends R, P, S2 extends Builder<R, T, P, S2>> S2 entry(NonNullBiFunction<String, BuilderCallback, S2> factory) {
@@ -881,18 +787,12 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     /**
      * Create a builder for a new entry. This is typically not needed, unless you are implementing a <a href="https://github.com/tterrag1098/Reginth/wiki/Custom-Builders">custom builder type</a>.
      *
-     * @param <R>
-     *            Registry type
-     * @param <T>
-     *            Entry type
-     * @param <P>
-     *            Parent type
-     * @param <S2>
-     *            Self type
-     * @param name
-     *            The name to use for the entry
-     * @param factory
-     *            The factory to create the builder
+     * @param <R>     Registry type
+     * @param <T>     Entry type
+     * @param <P>     Parent type
+     * @param <S2>    Self type
+     * @param name    The name to use for the entry
+     * @param factory The factory to create the builder
      * @return The {@link Builder} instance
      */
     public <R, T extends R, P, S2 extends Builder<R, T, P, S2>> S2 entry(String name, NonNullFunction<BuilderCallback, S2> factory) {
@@ -903,21 +803,14 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Factory method to accept a completed builder and add it to the registration queue.
      * <p>
      * Satisfies the functional interface {@link BuilderCallback}, which is typically given to new builder instances when they are constructed.
-     * 
-     * @param <R>
-     *            Registry type
-     * @param <T>
-     *            Entry type
-     * @param name
-     *            Thename of the entry being created
-     * @param type
-     *            The registry to add the entry to
-     * @param builder
-     *            The builder instance that was used to create this entry. Not used by default implementation, but custom extensions may use it for some purpose
-     * @param creator
-     *            Constructor for the new entry object
-     * @param entryFactory
-     *            Optional custom factory to create special {@link RegistryEntry} types
+     *
+     * @param <R>          Registry type
+     * @param <T>          Entry type
+     * @param name         Thename of the entry being created
+     * @param type         The registry to add the entry to
+     * @param builder      The builder instance that was used to create this entry. Not used by default implementation, but custom extensions may use it for some purpose
+     * @param creator      Constructor for the new entry object
+     * @param entryFactory Optional custom factory to create special {@link RegistryEntry} types
      * @return A {@link RegistryEntry} that will hold the created entry after registration is complete
      */
     protected <R, T extends R> RegistryEntry<R, T> accept(String name, ResourceKey<? extends Registry<R>> type, Builder<R, T, ?, ?> builder, NonNullSupplier<? extends T> creator, NonNullFunction<DeferredHolder<R, T>, ? extends RegistryEntry<R, T>> entryFactory) {
@@ -940,13 +833,10 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * Alternatively, a custom {@link Builder builder} can be created.
      * <p>
      * This method will automatically subscribe to the {@link NewRegistryEvent} and create the registry at the proper time. Thus, the new registry will not exist immediately after this is called.
-     * 
-     * @param <R>
-     *            The type of object the new registry will contain
-     * @param name
-     *            The ID of this registry
-     * @param builder
-     *            A function to create the {@link RegistryBuilder} that defines the other properties/behaviors of the created registry
+     *
+     * @param <R>     The type of object the new registry will contain
+     * @param name    The ID of this registry
+     * @param builder A function to create the {@link RegistryBuilder} that defines the other properties/behaviors of the created registry
      * @return A {@link ResourceKey resource key} referencing the to-be-created registry.
      */
     public <R> ResourceKey<Registry<R>> makeRegistry(String name, Function<ResourceKey<Registry<R>>, RegistryBuilder<R>> builder) {
@@ -962,7 +852,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * <p>
      * Data JSONs will be loaded from {@code data/<datapack_namespace>/modid/registryname/}, where {@code modid} is the namespace of the registry key.
      *
-     * @param name The ID of this registry
+     * @param name  The ID of this registry
      * @param codec The codec to be used for loading data from datapacks on servers
      * @see #makeDatapackRegistry(String, Codec, Codec)
      */
@@ -976,15 +866,15 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * <p>
      * Data JSONs will be loaded from {@code data/<datapack_namespace>/modid/registryname/}, where {@code modid} is the namespace of the registry key.
      *
-     * @param name The ID of this registry
-     * @param codec The codec to be used for loading data from datapacks on servers
+     * @param name         The ID of this registry
+     * @param codec        The codec to be used for loading data from datapacks on servers
      * @param networkCodec The codec to be used for syncing loaded data to clients.
-     * If {@code networkCodec} is null, data will not be synced, and clients are not required to have this
-     * datapack registry to join a server.
-     * <p>
-     * If {@code networkCodec} is not null, clients must have this datapack registry/mod
-     * when joining a server that has this datapack registry/mod.
-     * The data will be synced using the network codec and accessible via {@link ClientPacketListener#registryAccess()}.
+     *                     If {@code networkCodec} is null, data will not be synced, and clients are not required to have this
+     *                     datapack registry to join a server.
+     *                     <p>
+     *                     If {@code networkCodec} is not null, clients must have this datapack registry/mod
+     *                     when joining a server that has this datapack registry/mod.
+     *                     The data will be synced using the network codec and accessible via {@link ClientPacketListener#registryAccess()}.
      * @see #makeDatapackRegistry(String, Codec)
      */
     public <R> ResourceKey<Registry<R>> makeDatapackRegistry(String name, Codec<R> codec, @Nullable Codec<R> networkCodec) {

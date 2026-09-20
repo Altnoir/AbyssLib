@@ -41,7 +41,9 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
         this.populator = populator;
     }
 
-    /** 使用 AbyssLib 默认横幅样式（{@link ALBannerStyle#DEFAULT}）构建。 */
+    /**
+     * 使用 AbyssLib 默认横幅样式（{@link ALBannerStyle#DEFAULT}）构建。
+     */
     public static Builder configure(Builder builder, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
         return configure(builder, ALBannerStyle.DEFAULT, populator, sections);
     }
@@ -55,7 +57,9 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
         return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList, bannerStyle, populator));
     }
 
-    /** 本标签页使用的横幅样式（渲染器按此绘制分区标题行）。 */
+    /**
+     * 本标签页使用的横幅样式（渲染器按此绘制分区标题行）。
+     */
     public ALBannerStyle bannerStyle() {
         return bannerStyle;
     }
@@ -80,13 +84,15 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
                 continue;
             }
 
-            // 横幅 N 格 = 该行行首 N 格为空（渲染器在此画横幅），物品从第 N+1 格同行接续；
+            // 横幅 N 格 = 该行行首 N 格为空（渲染器在此画横幅，左对齐），物品从第 N+1 格同行接续；
             // N=9 时横幅独占一整行、物品从下一行开始（与原版/默认行为一致）。
-            // 分区自带整行贴图（162×18）时固定按整行算，与标签页级 ALBannerStyle 无关。
-            int columns = section.hasBannerTexture() ? COLUMNS : bannerStyle().units();
+            // 自带横幅贴图的分区用自己声明的格数（ALCreativeTabSection#bannerUnits），
+            // 没有贴图的退回标签页级 ALBannerStyle。
+            int columns = section.hasBannerTexture() ? section.bannerUnits() : bannerStyle().units();
 
             int headingRow = newDisplayItems.size() / COLUMNS;
-            newLayouts.add(new SectionLayout(section.title(), headingRow, section.bannerTexture().orElse(null)));
+            newLayouts.add(new SectionLayout(section.title(), headingRow,
+                    section.bannerTexture().orElse(null), columns, section.titlePlate()));
             if (columns < COLUMNS) {
                 // 横幅只占行首 N 格：留出 N 个空位，物品接着往后排
                 for (int i = 0; i < columns; i++) {
@@ -160,14 +166,26 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
     /**
      * 一个分区在标签页里的版面信息。
      *
-     * @param title         分区标题（仅当分区没有自带横幅贴图时才会被渲染器绘制）
+     * @param title         分区标题（渲染器画在横幅最左侧；过长会被截断）
      * @param headingRow    该分区横幅所在的行号（0 起，按 9 列折算）
-     * @param bannerTexture 分区自带的整行横幅贴图；为 {@code null} 时退回标签页级 {@link ALBannerStyle}
+     * @param bannerTexture 分区自带的横幅贴图；为 {@code null} 时退回标签页级 {@link ALBannerStyle}
+     * @param bannerUnits   横幅占该行行首几格（1~9，左对齐）
+     * @param titlePlate    标题底板；{@link ALTitlePlate#DISABLED} 表示不画
      */
-    public record SectionLayout(Component title, int headingRow, @Nullable ResourceLocation bannerTexture) {
-        /** 该分区是否由贴图自带横幅（有贴图则渲染器不叠标题文字）。 */
+    public record SectionLayout(Component title, int headingRow, @Nullable ResourceLocation bannerTexture,
+                                int bannerUnits, ALTitlePlate titlePlate) {
+        /**
+         * 该分区是否由贴图提供横幅（有贴图则渲染器画贴图而不是标签页级样式）。
+         */
         public boolean hasBannerTexture() {
             return bannerTexture != null;
+        }
+
+        /**
+         * 横幅的像素宽度 = {@code bannerUnits × 18}。
+         */
+        public int bannerPixelWidth() {
+            return bannerUnits * ALBannerStyle.UNITS_PIXEL;
         }
     }
 }
