@@ -1,11 +1,11 @@
 package com.altnoir.abysslib.structure;
 
-import net.minecraft.resources.ResourceLocation;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
@@ -29,11 +29,11 @@ import javax.annotation.Nullable;
  * { "spacing": 64, "separation": 32, "spread_type": "linear", "salt": 10387312, "footprint_chunks": 8 }
  * }</pre>
  *
- * @param spacing          网格单元边长（chunk），必须 &gt; separation
- * @param separation       中心在单元内的最小退让（chunk）
- * @param spreadType       与原版一致：linear / triangular
- * @param salt             与原版一致的盐，决定中心落在单元里的位置
- * @param footprintChunks  结构中心到足迹边缘的 chunk 数（= max_distance_from_center / 16，向上取整）
+ * @param spacing         网格单元边长（chunk），必须 &gt; separation
+ * @param separation      中心在单元内的最小退让（chunk）
+ * @param spreadType      与原版一致：linear / triangular
+ * @param salt            与原版一致的盐，决定中心落在单元里的位置
+ * @param footprintChunks 结构中心到足迹边缘的 chunk 数（= max_distance_from_center / 16，向上取整）
  */
 public record ALGridProfile(
         int spacing,
@@ -43,7 +43,9 @@ public record ALGridProfile(
         int footprintChunks
 ) {
 
-    /** 注册表 id：{@code atlas:grid_profile}（数据包目录 {@code atlas/grid_profile/}）。 */
+    /**
+     * 注册表 id：{@code atlas:grid_profile}（数据包目录 {@code atlas/grid_profile/}）。
+     */
     public static final ResourceKey<Registry<ALGridProfile>> KEY =
             ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(AbyssLibAtlas.NAMESPACE, "grid_profile"));
 
@@ -80,7 +82,12 @@ public record ALGridProfile(
         return DataResult.success(profile);
     }
 
-    /** 数据包注册表注册（由 {@link AbyssLib} 的构造器挂到 mod 总线）。 */
+    /**
+     * 数据包注册表注册（由 {@code AbyssLib} 的构造器挂到 mod 总线）。
+     * <p>
+     * 这里写 {@code AbyssLib} 而不是 {@code @link}：那个类在 {@code module.main} 里，
+     * atlas 模块依赖不到它，写成链接会让 javadoc 报“未找到符号”（不阻断 build，但会刷错误）。
+     */
     public static void registerDataPackRegistry(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(KEY, CODEC, CODEC);
     }
@@ -114,7 +121,9 @@ public record ALGridProfile(
         return new ALGridProfile(spacingChunks, separationChunks, spreadType, salt, footprint);
     }
 
-    /** 同上，`spread_type = linear`、`separation = 1`。 */
+    /**
+     * 同上，`spread_type = linear`、`separation = 1`。
+     */
     public static ALGridProfile forRadius(int maxDistanceFromCenter, int spacingChunks, int salt) {
         return forRadius(maxDistanceFromCenter, spacingChunks, 1, RandomSpreadType.LINEAR, salt);
     }
@@ -128,7 +137,9 @@ public record ALGridProfile(
         return new RandomSpreadStructurePlacement(this.spacing, this.separation, this.spreadType, this.salt);
     }
 
-    /** 区域坐标 → 该区域的结构中心 chunk（原版 {@code getPotentialStructureChunk}）。 */
+    /**
+     * 区域坐标 → 该区域的结构中心 chunk（原版 {@code getPotentialStructureChunk}）。
+     */
     public ChunkPos potentialCenterChunk(long seed, int regionX, int regionZ) {
         return this.math().getPotentialStructureChunk(seed, regionX, regionZ);
     }

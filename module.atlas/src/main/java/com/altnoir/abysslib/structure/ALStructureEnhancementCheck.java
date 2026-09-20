@@ -29,9 +29,11 @@ import java.lang.reflect.Method;
  *       日志里 mixin 应用时间是 00:51:08，而自检在 00:51:04 就打印了）。</li>
  * </ol>
  *
- * <p>注册方式：由 {@link AbyssLib} 的 {@code @Mod} 构造器显式注册到 mod 总线与游戏总线，
+ * <p>注册方式：由 {@code AbyssLib} 的 {@code @Mod} 构造器显式注册到 mod 总线与游戏总线，
  * <b>不用</b> {@code @EventBusSubscriber}（NeoForge 21.1 里它的 {@code bus} 参数已弃用）。
  * 全部逻辑包在 try/catch 里，任何异常只降级为 WARN 日志，绝不影响游戏启动。
+ * <p>（{@code AbyssLib} 用 {@code @code} 而不是 {@code @link}：那个类在 {@code module.main} 里，
+ * atlas 模块依赖不到它，写成链接会让 javadoc 报“未找到符号”。）
  */
 public final class ALStructureEnhancementCheck {
 
@@ -87,7 +89,9 @@ public final class ALStructureEnhancementCheck {
         }
     }
 
-    /** 运行时阶段（世界数据包已加载）仍未置位的，就是真的没生效。 */
+    /**
+     * 运行时阶段（世界数据包已加载）仍未置位的，就是真的没生效。
+     */
     private static String state(boolean flag, boolean runtimePhase) {
         if (flag) {
             return "OK";
