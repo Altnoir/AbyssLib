@@ -47,5 +47,6 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 dependencies {
     // 将功能模块打入聚合包。
     jarJar(api project(":abysslib-reginth${mod_mc_suffix}"))
+    jarJar(api project(":abysslib-relink${mod_mc_suffix}"))
     jarJar(api project(":abysslib-atlas${mod_mc_suffix}"))
 }

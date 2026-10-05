@@ -1,0 +1,18 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+neoForge {
+    version = project.neo_version
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    // The datagen API references Reginth types; runtime code does not.
+    compileOnly project(":abysslib-reginth${mod_mc_suffix}")
+}

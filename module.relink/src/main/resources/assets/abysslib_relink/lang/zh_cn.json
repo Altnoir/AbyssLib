@@ -1,0 +1,12 @@
+{
+  "abysslib_relink.configuration.title": "AbyssLib - ReLink 配置",
+  "abysslib_relink.configuration.section.abysslib_relink.client.toml": "客户端",
+  "abysslib_relink.configuration.section.abysslib_relink.client.toml.title": "AbyssLib - ReLink 客户端设置",
+  "abysslib_relink.configuration.emissiveLayer": "发光叠加层",
+  "abysslib_relink.configuration.emissiveLayer.tooltip": "为存在「后缀同族贴图」的方块贴图额外绘制一层满亮叠加层（OptiFine 风格）。",
+  "abysslib_relink.configuration.emissiveSuffix": "发光贴图后缀",
+  "abysslib_relink.configuration.emissiveSuffix.tooltip": "发光叠加层所使用的贴图后缀，OptiFine 用 \"_e\"；留空表示关闭该功能。",
+  "abysslib_relink.configuration.emissiveExclude": "发光排除列表",
+  "abysslib_relink.configuration.emissiveExclude.tooltip": "不做发光叠加的贴图 / 命名空间（前缀匹配，例如 \"minecraft:block/iron_ore\" 或 \"create:\"）。",
+  "abysslib_relink.configuration.emissiveExclude.button": "添加贴图 / 命名空间"
+}

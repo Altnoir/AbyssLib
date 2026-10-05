@@ -10,7 +10,7 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-// 各 Minecraft 版本使用独立 artifactId；26.1 线包含 Reginth 与 Atlas。
+// 各 Minecraft 版本使用独立 artifactId。
 def rootProps = new Properties()
 new File(settingsDir, 'gradle.properties').withInputStream { rootProps.load(it) }
 def mcSuffix = rootProps.getProperty('mod_mc_suffix')
@@ -20,9 +20,11 @@ if (mcSuffix == null || mcSuffix.isEmpty()) {
 }
 
 include 'module.reginth'
+include 'module.relink'
 include 'module.atlas'
 include 'module.main'
 
 project(':module.reginth').name = "abysslib-reginth${mcSuffix}"
+project(':module.relink').name = "abysslib-relink${mcSuffix}"
 project(':module.atlas').name = "abysslib-atlas${mcSuffix}"
 project(':module.main').name = "abysslib${mcSuffix}"
