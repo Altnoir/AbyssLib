@@ -1,0 +1,17 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+neoForge {
+    version = project.neo_version
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    compileOnly project(":abysslib-reginth${mod_mc_suffix}")
+}

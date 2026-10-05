@@ -10,17 +10,7 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-// Modular layout: one repository, feature modules + one aggregate (same shape as the
-// 1.21.1 line). Directories are named module.<name> (with a dot); the Gradle project name
-// is then set to the Maven artifactId, so `project(':abysslib-reginth-26.1.2')` and the
-// published coordinate are naturally the same thing.
-//
-// The MC-line suffix comes from mod_mc_suffix in the root gradle.properties: it is the
-// single source of truth and it keeps this line from ever publishing to the same
-// coordinates as the 1.21.1 line (same group + same mod_version, different Minecraft).
-//
-// The 26.1 line currently ships the registration framework only: relink (model loader)
-// and atlas (structure extension) have not been ported yet.
+// 各 Minecraft 版本使用独立 artifactId；26.1 线包含 Reginth 与 Atlas。
 def rootProps = new Properties()
 new File(settingsDir, 'gradle.properties').withInputStream { rootProps.load(it) }
 def mcSuffix = rootProps.getProperty('mod_mc_suffix')
@@ -30,7 +20,9 @@ if (mcSuffix == null || mcSuffix.isEmpty()) {
 }
 
 include 'module.reginth'
+include 'module.atlas'
 include 'module.main'
 
 project(':module.reginth').name = "abysslib-reginth${mcSuffix}"
+project(':module.atlas').name = "abysslib-atlas${mcSuffix}"
 project(':module.main').name = "abysslib${mcSuffix}"

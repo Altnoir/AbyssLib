@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.altnoir.abysslib.mixin.structure",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "JigsawMaxDistanceMixin",
+    "JigsawPlacementMixin",
+    "JigsawStructureMixin",
+    "ServerboundSetStructureBlockPacketMixin",
+    "StructureBlockEntityMixin"
+  ],
+  "client": [
+    "BlockEntityWithBoundingBoxRendererMixin",
+    "StructureBlockEditScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
