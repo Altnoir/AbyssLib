@@ -41,8 +41,8 @@ import java.util.Set;
  * ALSectionedCreativeTabRenderer.register();
  * }</pre>
  */
-public final class ALSectionedCreativeTabRenderer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ALSectionedCreativeTabRenderer.class);
+public final class SectionedCreativeTabRenderer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SectionedCreativeTabRenderer.class);
 
     private static final int VISIBLE_ROWS = 5;
     private static final int GRID_LEFT = 8;
@@ -75,7 +75,7 @@ public final class ALSectionedCreativeTabRenderer {
      */
     private static final Set<ResourceLocation> REGISTERED_PRESETS = new HashSet<>();
 
-    private ALSectionedCreativeTabRenderer() {
+    private SectionedCreativeTabRenderer() {
     }
 
     /**
@@ -87,7 +87,7 @@ public final class ALSectionedCreativeTabRenderer {
             return;
         }
         registered = true;
-        NeoForge.EVENT_BUS.addListener(ALSectionedCreativeTabRenderer::onRenderForeground);
+        NeoForge.EVENT_BUS.addListener(SectionedCreativeTabRenderer::onRenderForeground);
     }
 
     /**
@@ -121,7 +121,7 @@ public final class ALSectionedCreativeTabRenderer {
         }
         // 调用方已通过 assetTexture() 保证路径带 .png
         String classPath = "/assets/" + loc.getNamespace() + "/" + loc.getPath();
-        try (InputStream in = ALSectionedCreativeTabRenderer.class.getResourceAsStream(classPath)) {
+        try (InputStream in = SectionedCreativeTabRenderer.class.getResourceAsStream(classPath)) {
             if (in == null) {
                 LOGGER.error("AbyssLib preset banner texture missing on classpath: {}", classPath);
                 return;

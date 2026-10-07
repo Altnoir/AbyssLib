@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.reginth;
 
-import com.altnoir.abysslib.client.creative.ALSectionedCreativeTabRenderer;
+import com.altnoir.abysslib.client.creative.SectionedCreativeTabRenderer;
 import com.mojang.logging.LogUtils;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 /**
  * <b>AbyssLib - Reginth</b>（modid {@code abysslib_reginth}）：注册框架模块的客户端入口。
  * <p>
- * 装载时自动注册分区创造栏标题渲染（{@link ALSectionedCreativeTabRenderer}），
+ * 装载时自动注册分区创造栏标题渲染（{@link SectionedCreativeTabRenderer}），
  * 消费方模组无需任何调用即可获得分区标题。横幅样式（纯色/贴图）在构建标签页时按页指定，
  * 见 {@code ALSectionedCreativeModeTab.configure(..., ALBannerStyle.xxx, ...)}。
  * <p>
@@ -29,6 +29,6 @@ public class AbyssLibReginth {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public AbyssLibReginth(IEventBus modEventBus, ModContainer modContainer) {
-        ALSectionedCreativeTabRenderer.register();
+        SectionedCreativeTabRenderer.register();
     }
 }
