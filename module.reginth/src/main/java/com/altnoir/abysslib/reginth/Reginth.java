@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.reginth;
 
-import com.altnoir.abysslib.creative.ALCreativeTabSection;
+import com.altnoir.abysslib.creative.CreativeTabSection;
 import com.altnoir.abysslib.reginth.builders.ReginthBlockBuilder;
 import com.altnoir.abysslib.reginth.builders.ReginthItemBuilder;
 import com.altnoir.abysslib.reginth.util.nullness.NonNullFunction;
@@ -32,7 +32,7 @@ import java.util.Set;
 public class Reginth extends AbstractReginth<Reginth> {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private ALCreativeTabSection defaultCreativeSection;
+    private CreativeTabSection defaultCreativeSection;
     private final Set<String> ignoredCreativeTabEntries = new HashSet<>();
 
     protected Reginth(String modid) {
@@ -54,7 +54,7 @@ public class Reginth extends AbstractReginth<Reginth> {
     }
 
     /** 设定默认创造栏分区：之后注册的方块/物品自动加入该分区。 */
-    public Reginth defaultCreativeSection(ALCreativeTabSection section) {
+    public Reginth defaultCreativeSection(CreativeTabSection section) {
         this.defaultCreativeSection = section;
         return this;
     }

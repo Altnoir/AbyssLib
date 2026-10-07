@@ -7,7 +7,7 @@ package com.altnoir.abysslib.creative;
  * （通常是黑色）就能保证可读。但底板会盖掉贴图本身的一部分，所以本库<b>不默认开</b>，
  * 由使用方按分区决定要不要，以及用什么颜色/多不透明。
  * <p>
- * 用 {@link ALCreativeTabSection#titlePlate(ALTitlePlate)} 挂到某个分区上；
+ * 用 {@link CreativeTabSection#titlePlate(TitlePlate)} 挂到某个分区上；
  * 只对画在横幅上的标题生效（{@code ALSectionedCreativeTabRenderer} 负责绘制）。
  * <p>
  * 用法：
@@ -30,12 +30,12 @@ package com.altnoir.abysslib.creative;
  * @param padX      底板在文字左右各多出的像素
  * @param padY      底板在文字上下各多出的像素
  */
-public record ALTitlePlate(boolean enabled, int argbColor, int padX, int padY) {
+public record TitlePlate(boolean enabled, int argbColor, int padX, int padY) {
 
     /**
      * 默认值：不启用（此时颜色/留白只是占位，不参与绘制）。
      */
-    public static final ALTitlePlate DISABLED = new ALTitlePlate(false, 0x40000000, 2, 2);
+    public static final TitlePlate DISABLED = new TitlePlate(false, 0x40000000, 2, 2);
 
     /**
      * 不透明度的最大/最小合法值（0~255）。
@@ -43,7 +43,7 @@ public record ALTitlePlate(boolean enabled, int argbColor, int padX, int padY) {
     public static final int MIN_ALPHA = 0;
     public static final int MAX_ALPHA = 255;
 
-    public ALTitlePlate {
+    public TitlePlate {
         padX = Math.max(0, padX);
         padY = Math.max(0, padY);
     }
@@ -53,15 +53,15 @@ public record ALTitlePlate(boolean enabled, int argbColor, int padX, int padY) {
     /**
      * 用 ARGB 颜色启用（{@code 0x40000000} = 25% 黑）。
      */
-    public static ALTitlePlate argb(int argbColor) {
-        return new ALTitlePlate(true, argbColor, DISABLED.padX(), DISABLED.padY());
+    public static TitlePlate argb(int argbColor) {
+        return new TitlePlate(true, argbColor, DISABLED.padX(), DISABLED.padY());
     }
 
     /**
      * 用 ARGB 颜色 + 自定义留白启用。
      */
-    public static ALTitlePlate argb(int argbColor, int padX, int padY) {
-        return new ALTitlePlate(true, argbColor, padX, padY);
+    public static TitlePlate argb(int argbColor, int padX, int padY) {
+        return new TitlePlate(true, argbColor, padX, padY);
     }
 
     /**
@@ -70,8 +70,8 @@ public record ALTitlePlate(boolean enabled, int argbColor, int padX, int padY) {
      * @param rgb     颜色，形如 {@code 0x102040}（不含 alpha，高 8 位会被忽略）
      * @param opacity 不透明度，0（全透明）~ 1（不透明），越界会被夹到范围内
      */
-    public static ALTitlePlate of(int rgb, float opacity) {
-        return new ALTitlePlate(true, withAlpha(rgb, opacity), DISABLED.padX(), DISABLED.padY());
+    public static TitlePlate of(int rgb, float opacity) {
+        return new TitlePlate(true, withAlpha(rgb, opacity), DISABLED.padX(), DISABLED.padY());
     }
 
     // ---------- 调参（返回副本，record 本身不可变） ----------
@@ -79,37 +79,37 @@ public record ALTitlePlate(boolean enabled, int argbColor, int padX, int padY) {
     /**
      * 换颜色（含 alpha），保持启用状态与留白。
      */
-    public ALTitlePlate withColor(int argbColor) {
-        return new ALTitlePlate(enabled, argbColor, padX, padY);
+    public TitlePlate withColor(int argbColor) {
+        return new TitlePlate(enabled, argbColor, padX, padY);
     }
 
     /**
      * 只改不透明度，颜色（RGB）不变。
      */
-    public ALTitlePlate withOpacity(float opacity) {
-        return new ALTitlePlate(enabled, withAlpha(argbColor & 0xFFFFFF, opacity), padX, padY);
+    public TitlePlate withOpacity(float opacity) {
+        return new TitlePlate(enabled, withAlpha(argbColor & 0xFFFFFF, opacity), padX, padY);
     }
 
     /**
      * 只改不透明度（0~255）。
      */
-    public ALTitlePlate withAlpha(int alpha) {
+    public TitlePlate withAlpha(int alpha) {
         int a = Math.max(MIN_ALPHA, Math.min(MAX_ALPHA, alpha));
-        return new ALTitlePlate(enabled, (a << 24) | (argbColor & 0xFFFFFF), padX, padY);
+        return new TitlePlate(enabled, (a << 24) | (argbColor & 0xFFFFFF), padX, padY);
     }
 
     /**
      * 只改留白。
      */
-    public ALTitlePlate withPadding(int padX, int padY) {
-        return new ALTitlePlate(enabled, argbColor, padX, padY);
+    public TitlePlate withPadding(int padX, int padY) {
+        return new TitlePlate(enabled, argbColor, padX, padY);
     }
 
     /**
      * 启用/停用。
      */
-    public ALTitlePlate withEnabled(boolean enabled) {
-        return new ALTitlePlate(enabled, argbColor, padX, padY);
+    public TitlePlate withEnabled(boolean enabled) {
+        return new TitlePlate(enabled, argbColor, padX, padY);
     }
 
     // ---------- 取值 ----------

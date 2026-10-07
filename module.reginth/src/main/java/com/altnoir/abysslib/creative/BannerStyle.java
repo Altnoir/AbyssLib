@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * 分区横幅样式：纯色或贴图，并支持自定义横幅长度。
  * <p>
- * 挂在 {@link ALSectionedCreativeModeTab} 上，渲染器按标签页读取，
+ * 挂在 {@link SectionedCreativeModeTab} 上，渲染器按标签页读取，
  * 因此不同模组（甚至同一模组的不同标签页）可以各自指定互不影响的样式。
  * <p>
  * <b>长度以"格数"为单位</b>（每格 = 18px，即创造栏一格宽）：
@@ -40,29 +40,43 @@ import net.minecraft.resources.ResourceLocation;
  * }</pre>
  * 不传样式时使用 {@link #DEFAULT}（AbyssLib 默认绿色系纯色，9 格整行）。
  */
-public sealed interface ALBannerStyle permits ALBannerStyle.Colors, ALBannerStyle.Texture {
+public sealed interface BannerStyle permits BannerStyle.Colors, BannerStyle.Texture {
 
-    /** 每格横幅的像素宽度（对应创造栏一格）。 */
+    /**
+     * 每格横幅的像素宽度（对应创造栏一格）。
+     */
     int UNITS_PIXEL = 18;
 
-    /** 最大格数（9 格 = 创造栏整行 162px）。 */
+    /**
+     * 最大格数（9 格 = 创造栏整行 162px）。
+     */
     int MAX_UNITS = 9;
 
-    /** 最小格数。 */
+    /**
+     * 最小格数。
+     */
     int MIN_UNITS = 1;
 
-    /** AbyssLib 默认样式：绿色系纯色横幅，9 格整行。 */
+    /**
+     * AbyssLib 默认样式：绿色系纯色横幅，9 格整行。
+     */
     Colors DEFAULT = new Colors(MAX_UNITS, 0xFF182115, 0xFF64843A, 0xFF8CBA51, 0xFFB7D986);
 
-    /** 本样式占的横幅格数（1~9）。 */
+    /**
+     * 本样式占的横幅格数（1~9）。
+     */
     int units();
 
-    /** 横幅实际像素宽度 = units() * 18。 */
+    /**
+     * 横幅实际像素宽度 = units() * 18。
+     */
     default int pixelLength() {
         return units() * UNITS_PIXEL;
     }
 
-    /** 校验格数合法性并返回。 */
+    /**
+     * 校验格数合法性并返回。
+     */
     static int validateUnits(int units) {
         if (units < MIN_UNITS || units > MAX_UNITS) {
             throw new IllegalArgumentException(
@@ -73,12 +87,16 @@ public sealed interface ALBannerStyle permits ALBannerStyle.Colors, ALBannerStyl
 
     // ---------- 纯色 ----------
 
-    /** 纯色横幅，默认 9 格（整行 162）。 */
+    /**
+     * 纯色横幅，默认 9 格（整行 162）。
+     */
     static Colors colors(int background, int borderMuted, int borderPrimary, int text) {
         return new Colors(MAX_UNITS, background, borderMuted, borderPrimary, text);
     }
 
-    /** 纯色横幅并指定格数（1~9，9 = 整行）。 */
+    /**
+     * 纯色横幅并指定格数（1~9，9 = 整行）。
+     */
     static Colors colors(int units, int background, int borderMuted, int borderPrimary, int text) {
         return new Colors(units, background, borderMuted, borderPrimary, text);
     }
@@ -94,12 +112,16 @@ public sealed interface ALBannerStyle permits ALBannerStyle.Colors, ALBannerStyl
         return new Texture(u, ResourceLocation.fromNamespaceAndPath(AbyssLibReginth.NAMESPACE, "textures/gui/section/banner_" + u));
     }
 
-    /** 自定义贴图并指定格数：路径写 "命名空间:路径" 或 ResourceLocation。 */
+    /**
+     * 自定义贴图并指定格数：路径写 "命名空间:路径" 或 ResourceLocation。
+     */
     static Texture texture(int units, String texturePath) {
         return new Texture(validateUnits(units), resource(texturePath));
     }
 
-    /** 自定义贴图并指定格数。 */
+    /**
+     * 自定义贴图并指定格数。
+     */
     static Texture texture(int units, ResourceLocation texture) {
         return new Texture(validateUnits(units), texture);
     }
@@ -112,25 +134,33 @@ public sealed interface ALBannerStyle permits ALBannerStyle.Colors, ALBannerStyl
         return ResourceLocation.fromNamespaceAndPath(texturePath.substring(0, colon), texturePath.substring(colon + 1));
     }
 
-    /** 纯色样式：颜色均为 ARGB（0xFF 开头即不透明）。 */
-    record Colors(int units, int background, int borderMuted, int borderPrimary, int text) implements ALBannerStyle {
+    /**
+     * 纯色样式：颜色均为 ARGB（0xFF 开头即不透明）。
+     */
+    record Colors(int units, int background, int borderMuted, int borderPrimary, int text) implements BannerStyle {
         public Colors {
-            units = ALBannerStyle.validateUnits(units);
+            units = BannerStyle.validateUnits(units);
         }
 
-        /** 生成指定格数的副本（1~9，9 = 整行）。 */
+        /**
+         * 生成指定格数的副本（1~9，9 = 整行）。
+         */
         public Colors withUnits(int newUnits) {
             return new Colors(newUnits, background, borderMuted, borderPrimary, text);
         }
     }
 
-    /** 贴图样式：整张贴图拉伸铺满指定格数的横幅行。 */
-    record Texture(int units, ResourceLocation texture) implements ALBannerStyle {
+    /**
+     * 贴图样式：整张贴图拉伸铺满指定格数的横幅行。
+     */
+    record Texture(int units, ResourceLocation texture) implements BannerStyle {
         public Texture {
-            units = ALBannerStyle.validateUnits(units);
+            units = BannerStyle.validateUnits(units);
         }
 
-        /** 生成指定格数的副本（配合尺寸为 N×18 的贴图可 1:1 显示）。 */
+        /**
+         * 生成指定格数的副本（配合尺寸为 N×18 的贴图可 1:1 显示）。
+         */
         public Texture withUnits(int newUnits) {
             return new Texture(newUnits, texture);
         }

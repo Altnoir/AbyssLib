@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.reginth.builders;
 
-import com.altnoir.abysslib.creative.ALCreativeTabSection;
+import com.altnoir.abysslib.creative.CreativeTabSection;
 import com.altnoir.abysslib.reginth.Reginth;
 import com.altnoir.abysslib.reginth.util.entry.ItemEntry;
 import com.altnoir.abysslib.reginth.util.nullness.NonNullFunction;
@@ -12,7 +12,7 @@ import net.minecraft.world.item.Item;
  * 由 {@link Reginth#item} 返回。
  */
 public class ReginthItemBuilder<T extends Item, P> extends ItemBuilder<T, P> {
-    private ALCreativeTabSection defaultCreativeSection;
+    private CreativeTabSection defaultCreativeSection;
 
     protected ReginthItemBuilder(
             Reginth owner,
@@ -36,7 +36,7 @@ public class ReginthItemBuilder<T extends Item, P> extends ItemBuilder<T, P> {
         return builder;
     }
 
-    public void defaultCreativeSection(ALCreativeTabSection section) {
+    public void defaultCreativeSection(CreativeTabSection section) {
         this.defaultCreativeSection = section;
     }
 
@@ -50,7 +50,7 @@ public class ReginthItemBuilder<T extends Item, P> extends ItemBuilder<T, P> {
      * 额外加入一个创造栏分区（在默认分区之外；可多次调用加入多个分区）。
      * 惰性求值：真正取值发生在创造栏内容构建时，因此 register 前调用即可。
      */
-    public ReginthItemBuilder<T, P> addTabSection(ALCreativeTabSection section) {
+    public ReginthItemBuilder<T, P> addTabSection(CreativeTabSection section) {
         section.add(() -> getEntry().getDefaultInstance());
         return this;
     }

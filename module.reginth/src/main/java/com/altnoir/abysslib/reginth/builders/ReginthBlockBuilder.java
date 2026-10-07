@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.reginth.builders;
 
-import com.altnoir.abysslib.creative.ALCreativeTabSection;
+import com.altnoir.abysslib.creative.CreativeTabSection;
 import com.altnoir.abysslib.reginth.Reginth;
 import com.altnoir.abysslib.reginth.util.entry.BlockEntry;
 import com.altnoir.abysslib.reginth.util.nullness.NonNullFunction;
@@ -18,8 +18,8 @@ import java.util.List;
  * 以及分区创造栏支持（{@link #ignore()} / {@link #addTabSection}）。
  */
 public class ReginthBlockBuilder<T extends Block, P> extends BlockBuilder<T, P> {
-    private ALCreativeTabSection defaultCreativeSection;
-    private final List<ALCreativeTabSection> extraSections = new ArrayList<>();
+    private CreativeTabSection defaultCreativeSection;
+    private final List<CreativeTabSection> extraSections = new ArrayList<>();
 
     protected ReginthBlockBuilder(
             Reginth owner,
@@ -43,7 +43,7 @@ public class ReginthBlockBuilder<T extends Block, P> extends BlockBuilder<T, P> 
         return builder;
     }
 
-    public void defaultCreativeSection(ALCreativeTabSection section) {
+    public void defaultCreativeSection(CreativeTabSection section) {
         this.defaultCreativeSection = section;
     }
 
@@ -57,7 +57,7 @@ public class ReginthBlockBuilder<T extends Block, P> extends BlockBuilder<T, P> 
      * 额外加入一个创造栏分区（在默认分区之外；可多次调用加入多个分区）。
      * 方块对应的方块物品会在注册完成后加入该分区。
      */
-    public ReginthBlockBuilder<T, P> addTabSection(ALCreativeTabSection section) {
+    public ReginthBlockBuilder<T, P> addTabSection(CreativeTabSection section) {
         extraSections.add(section);
         return this;
     }
@@ -68,7 +68,7 @@ public class ReginthBlockBuilder<T extends Block, P> extends BlockBuilder<T, P> 
         if (defaultCreativeSection != null && !getOwner().isIgnoredCreativeTab(getName())) {
             defaultCreativeSection.add(() -> entry.get().asItem().getDefaultInstance());
         }
-        for (ALCreativeTabSection section : extraSections) {
+        for (CreativeTabSection section : extraSections) {
             section.add(() -> entry.get().asItem().getDefaultInstance());
         }
         return entry;

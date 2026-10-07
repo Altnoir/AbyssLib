@@ -1,9 +1,9 @@
 package com.altnoir.abysslib.client.creative;
 
-import com.altnoir.abysslib.creative.ALBannerStyle;
-import com.altnoir.abysslib.creative.ALCreativeTabSection;
-import com.altnoir.abysslib.creative.ALSectionedCreativeModeTab;
-import com.altnoir.abysslib.creative.ALTitlePlate;
+import com.altnoir.abysslib.creative.BannerStyle;
+import com.altnoir.abysslib.creative.CreativeTabSection;
+import com.altnoir.abysslib.creative.SectionedCreativeModeTab;
+import com.altnoir.abysslib.creative.TitlePlate;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
@@ -25,10 +25,10 @@ import java.util.Set;
 /**
  * 分区创造栏标题渲染器（客户端）。
  * <p>
- * 当玩家打开创造栏、当前选中的是 {@link ALSectionedCreativeModeTab} 时，
+ * 当玩家打开创造栏、当前选中的是 {@link SectionedCreativeModeTab} 时，
  * 在其空行分隔行上绘制分区标题横幅。样式由每个标签页自己的
- * {@link ALBannerStyle} 决定（纯色或贴图，见构建时 {@code configure(...)} 的第二个参数）；
- * 不指定则用 AbyssLib 默认绿色系 {@link ALBannerStyle#DEFAULT}。
+ * {@link BannerStyle} 决定（纯色或贴图，见构建时 {@code configure(...)} 的第二个参数）；
+ * 不指定则用 AbyssLib 默认绿色系 {@link BannerStyle#DEFAULT}。
  * 依赖 {@code accesstransformer.cfg} 放宽了对 {@code CreativeModeInventoryScreen}
  * {@code selectedTab}/{@code scrollOffs} 两个字段的访问权限。
  * <p>
@@ -63,8 +63,8 @@ public final class ALSectionedCreativeTabRenderer {
 
     /**
      * 标题超宽被截断时补的省略号。
-     * 标题底板要不要、什么颜色/多不透明，见 {@link ALCreativeTabSection#titlePlate(ALTitlePlate)}，
-     * <b>默认不启用</b>（{@link ALTitlePlate#DISABLED}）。
+     * 标题底板要不要、什么颜色/多不透明，见 {@link CreativeTabSection#titlePlate(TitlePlate)}，
+     * <b>默认不启用</b>（{@link TitlePlate#DISABLED}）。
      */
     private static final String TITLE_ELLIPSIS = "…";
 
@@ -98,7 +98,7 @@ public final class ALSectionedCreativeTabRenderer {
      * 于是写 {@code mia:textures/gui/ctab/building} 会直接
      * {@code FileNotFoundException}，在游戏里就是一块黑紫。
      * <p>
-     * 本库对外的约定是写"普通资源路径"（见 {@link ALCreativeTabSection} 的构造器注释），
+     * 本库对外的约定是写"普通资源路径"（见 {@link CreativeTabSection} 的构造器注释），
      * 所以这里统一补上 {@code .png}；已经带 {@code .png} 的原样返回，
      * 两种写法都能用（{@code abysslib:} 内置预设贴图不受影响，见 {@link #ensurePresetTexture}）。
      */
@@ -136,16 +136,16 @@ public final class ALSectionedCreativeTabRenderer {
 
     public static void onRenderForeground(ContainerScreenEvent.Render.Foreground event) {
         if (event.getContainerScreen() instanceof CreativeModeInventoryScreen screen
-                && CreativeModeInventoryScreen.selectedTab instanceof ALSectionedCreativeModeTab tab) {
+                && CreativeModeInventoryScreen.selectedTab instanceof SectionedCreativeModeTab tab) {
             render(event.getGuiGraphics(), tab, screen.scrollOffs);
         }
     }
 
-    private static void render(GuiGraphics graphics, ALSectionedCreativeModeTab tab, float scrollOffset) {
+    private static void render(GuiGraphics graphics, SectionedCreativeModeTab tab, float scrollOffset) {
         int firstVisibleRow = tab.visibleStartRow(scrollOffset);
         Font font = Minecraft.getInstance().font;
 
-        for (ALSectionedCreativeModeTab.SectionLayout section : tab.sectionLayouts()) {
+        for (SectionedCreativeModeTab.SectionLayout section : tab.sectionLayouts()) {
             int visibleRow = section.headingRow() - firstVisibleRow;
             if (visibleRow < 0 || visibleRow >= VISIBLE_ROWS) {
                 continue;
@@ -182,14 +182,14 @@ public final class ALSectionedCreativeTabRenderer {
         graphics.flush();
     }
 
-    private static void drawBanner(GuiGraphics graphics, int top, ALBannerStyle style, int width) {
-        if (style instanceof ALBannerStyle.Colors colors) {
+    private static void drawBanner(GuiGraphics graphics, int top, BannerStyle style, int width) {
+        if (style instanceof BannerStyle.Colors colors) {
             graphics.fill(GRID_LEFT, top, GRID_LEFT + width, top + ROW_HEIGHT, colors.background());
             graphics.fill(GRID_LEFT, top, GRID_LEFT + 1, top + ROW_HEIGHT, colors.borderMuted());
             graphics.fill(GRID_LEFT + width - 1, top, GRID_LEFT + width, top + ROW_HEIGHT, colors.borderMuted());
             graphics.fill(GRID_LEFT + 1, top, GRID_LEFT + width, top + 1, colors.borderPrimary());
             graphics.fill(GRID_LEFT + 1, top + ROW_HEIGHT - 1, GRID_LEFT + width, top + ROW_HEIGHT, colors.borderMuted());
-        } else if (style instanceof ALBannerStyle.Texture texture) {
+        } else if (style instanceof BannerStyle.Texture texture) {
             // 内置预设贴图：先确保从类路径注册过；自定义贴图走正常 MC 资产加载。
             ResourceLocation tex = assetTexture(texture.texture());
             ensurePresetTexture(tex);
@@ -203,16 +203,16 @@ public final class ALSectionedCreativeTabRenderer {
         }
     }
 
-    private static boolean isTextureBanner(ALBannerStyle style) {
-        return style instanceof ALBannerStyle.Texture;
+    private static boolean isTextureBanner(BannerStyle style) {
+        return style instanceof BannerStyle.Texture;
     }
 
-    private static int bannerTextColor(ALBannerStyle style) {
-        return style instanceof ALBannerStyle.Colors colors ? colors.text() : TEXTURE_TEXT_COLOR;
+    private static int bannerTextColor(BannerStyle style) {
+        return style instanceof BannerStyle.Colors colors ? colors.text() : TEXTURE_TEXT_COLOR;
     }
 
     /**
-     * 画分区标题：可选先垫一层底板（{@link ALTitlePlate}，<b>默认不启用</b>），再画文字。
+     * 画分区标题：可选先垫一层底板（{@link TitlePlate}，<b>默认不启用</b>），再画文字。
      * <p>
      * 层次是刻意的 —— <b>底板在横幅之上、文字之下</b>：贴图的渐变/花纹先被压暗，
      * 白字再压上去，任意底纹上都读得清。底板宽度 = {@code font.width(title) + 2 * padX}，
@@ -222,7 +222,7 @@ public final class ALSectionedCreativeTabRenderer {
      * （横幅只有 4 格 = 72px 时英文标题很容易超宽）。
      */
     private static void drawTitle(GuiGraphics graphics, Font font, Component title, int top,
-                                  int bannerWidth, int textColor, boolean shadow, ALTitlePlate plate) {
+                                  int bannerWidth, int textColor, boolean shadow, TitlePlate plate) {
         int textX = GRID_LEFT + TITLE_TEXT_OFFSET_X;
         int textY = top + TITLE_TEXT_OFFSET_Y;
         // 右边留出与左边一样的边距，标题不会贴到横幅边缘

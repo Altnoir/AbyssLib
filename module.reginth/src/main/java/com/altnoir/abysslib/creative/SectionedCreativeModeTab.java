@@ -16,25 +16,25 @@ import java.util.function.Consumer;
 
 /**
  * 分区式创造栏（CreativeModeTab 子类）。
- * 通过 {@link #configure} 把若干 {@link ALCreativeTabSection} 挂到标签页上：
+ * 通过 {@link #configure} 把若干 {@link CreativeTabSection} 挂到标签页上：
  * 构建时按分区顺序输出条目，同一物品去重。
  * 横幅 N 格 = 分区标题行行首 N 格被横幅占据，物品从横幅右侧同行接续排布
  * （N=9 时横幅独占一整行、物品从下一行开始，即原版式布局）。
  */
-public final class ALSectionedCreativeModeTab extends CreativeModeTab {
+public final class SectionedCreativeModeTab extends CreativeModeTab {
     private static final int COLUMNS = 9;
     private static final int VISIBLE_ROWS = 5;
 
-    private final List<ALCreativeTabSection> sections;
+    private final List<CreativeTabSection> sections;
     private final Consumer<ItemDisplayParameters> populator;
-    private final ALBannerStyle bannerStyle;
+    private final BannerStyle bannerStyle;
     private Collection<ItemStack> displayItems = List.of();
     private Set<ItemStack> searchItems = ItemStackLinkedSet.createTypeAndComponentsSet();
     private List<SectionLayout> sectionLayouts = List.of();
     @Nullable
     private ItemDisplayParameters cachedParameters;
 
-    private ALSectionedCreativeModeTab(Builder builder, List<ALCreativeTabSection> sections, ALBannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator) {
+    private SectionedCreativeModeTab(Builder builder, List<CreativeTabSection> sections, BannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator) {
         super(builder);
         this.sections = List.copyOf(sections);
         this.bannerStyle = bannerStyle;
@@ -42,32 +42,32 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
     }
 
     /**
-     * 使用 AbyssLib 默认横幅样式（{@link ALBannerStyle#DEFAULT}）构建。
+     * 使用 AbyssLib 默认横幅样式（{@link BannerStyle#DEFAULT}）构建。
      */
-    public static Builder configure(Builder builder, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
-        return configure(builder, ALBannerStyle.DEFAULT, populator, sections);
+    public static Builder configure(Builder builder, Consumer<ItemDisplayParameters> populator, CreativeTabSection... sections) {
+        return configure(builder, BannerStyle.DEFAULT, populator, sections);
     }
 
     /**
      * 指定横幅样式构建：每个标签页可独立使用自己的纯色或贴图横幅
-     * （见 {@link ALBannerStyle}），不指定则用默认样式。
+     * （见 {@link BannerStyle}），不指定则用默认样式。
      */
-    public static Builder configure(Builder builder, ALBannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator, ALCreativeTabSection... sections) {
-        List<ALCreativeTabSection> sectionList = List.of(sections);
-        return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList, bannerStyle, populator));
+    public static Builder configure(Builder builder, BannerStyle bannerStyle, Consumer<ItemDisplayParameters> populator, CreativeTabSection... sections) {
+        List<CreativeTabSection> sectionList = List.of(sections);
+        return builder.withTabFactory(tabBuilder -> new SectionedCreativeModeTab(tabBuilder, sectionList, bannerStyle, populator));
     }
 
     /**
      * 本标签页使用的横幅样式（渲染器按此绘制分区标题行）。
      */
-    public ALBannerStyle bannerStyle() {
+    public BannerStyle bannerStyle() {
         return bannerStyle;
     }
 
     @Override
     public void buildContents(ItemDisplayParameters parameters) {
         this.cachedParameters = parameters;
-        sections.forEach(ALCreativeTabSection::clear);
+        sections.forEach(CreativeTabSection::clear);
         populator.accept(parameters);
 
         List<ItemStack> newDisplayItems = new ArrayList<>();
@@ -75,7 +75,7 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
         Set<ItemStack> seenDisplayItems = ItemStackLinkedSet.createTypeAndComponentsSet();
         List<SectionLayout> newLayouts = new ArrayList<>();
 
-        for (ALCreativeTabSection section : sections) {
+        for (CreativeTabSection section : sections) {
             List<ItemStack> enabledItems = section.itemStacks().stream()
                     .filter(stack -> stack.getItem().isEnabled(parameters.enabledFeatures()))
                     .filter(seenDisplayItems::add)
@@ -168,12 +168,12 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
      *
      * @param title         分区标题（渲染器画在横幅最左侧；过长会被截断）
      * @param headingRow    该分区横幅所在的行号（0 起，按 9 列折算）
-     * @param bannerTexture 分区自带的横幅贴图；为 {@code null} 时退回标签页级 {@link ALBannerStyle}
+     * @param bannerTexture 分区自带的横幅贴图；为 {@code null} 时退回标签页级 {@link BannerStyle}
      * @param bannerUnits   横幅占该行行首几格（1~9，左对齐）
-     * @param titlePlate    标题底板；{@link ALTitlePlate#DISABLED} 表示不画
+     * @param titlePlate    标题底板；{@link TitlePlate#DISABLED} 表示不画
      */
     public record SectionLayout(Component title, int headingRow, @Nullable ResourceLocation bannerTexture,
-                                int bannerUnits, ALTitlePlate titlePlate) {
+                                int bannerUnits, TitlePlate titlePlate) {
         /**
          * 该分区是否由贴图提供横幅（有贴图则渲染器画贴图而不是标签页级样式）。
          */
@@ -185,7 +185,7 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
          * 横幅的像素宽度 = {@code bannerUnits × 18}。
          */
         public int bannerPixelWidth() {
-            return bannerUnits * ALBannerStyle.UNITS_PIXEL;
+            return bannerUnits * BannerStyle.UNITS_PIXEL;
         }
     }
 }
