@@ -25,3 +25,12 @@ neoForge {
 dependencies {
     // Reginth 是底座：没有任何 AbyssLib 内部依赖。
 }
+
+// 本模块是拿来被别的模组内嵌的（消费者走 jarJar(files(...))），而 JarJar 拒绝内嵌一个
+// 没有显式 Java 模块名的本地 jar —— 它没法判断两个被内嵌的 jar 是否会撞包。
+// 模块名只在工具链里起作用：NeoForge 从 classpath 加载模组，不碰 module path。
+jar {
+    manifest {
+        attributes('Automatic-Module-Name': 'com.altnoir.abysslib.reginth')
+    }
+}
