@@ -8,21 +8,21 @@ package com.altnoir.abysslib.creative;
  * 由使用方按分区决定要不要，以及用什么颜色/多不透明。
  * <p>
  * 用 {@link CreativeTabSection#titlePlate(TitlePlate)} 挂到某个分区上；
- * 只对画在横幅上的标题生效（{@code ALSectionedCreativeTabRenderer} 负责绘制）。
+ * 只对画在横幅上的标题生效（{@code SectionedCreativeTabRenderer} 负责绘制）。
  * <p>
  * 用法：
  * <pre>{@code
  * // 不启用（默认）
- * section.titlePlate(ALTitlePlate.DISABLED);
+ * section.titlePlate(TitlePlate.DISABLED);
  *
  * // 25% 黑底
- * section.titlePlate(ALTitlePlate.argb(0x40000000));
+ * section.titlePlate(TitlePlate.argb(0x40000000));
  *
  * // RGB + 不透明度（0~1）
- * section.titlePlate(ALTitlePlate.of(0x000000, 0.25F));
+ * section.titlePlate(TitlePlate.of(0x000000, 0.25F));
  *
  * // 蓝色 40%，左右留白 3px、上下 1px
- * section.titlePlate(ALTitlePlate.of(0x102040, 0.4F).withPadding(3, 1));
+ * section.titlePlate(TitlePlate.of(0x102040, 0.4F).withPadding(3, 1));
  * }</pre>
  *
  * @param enabled   是否绘制底板

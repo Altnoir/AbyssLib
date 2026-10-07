@@ -46,7 +46,7 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · 包名
   - [3.6 兼容上游 Athena 写法](#36-兼容上游-athena-写法)
 - [4. 分区式创造栏](#4-分区式创造栏)
   - [4.1 建标签页与分区](#41-建标签页与分区)
-  - [4.2 横幅样式](#42-横幅样式albannerstyle)
+  - [4.2 横幅样式](#42-横幅样式bannerstyle)
 - [5. 消费方接入](#5-消费方接入)
 - [6. 迁移指南](#6-迁移指南)
 - [7. 排错](#7-排错)
@@ -576,12 +576,12 @@ AbyssLib/ReLink: 检测到上游 Athena 已加载 -> 已禁用 athena:* 兼容�
 public final class MyItemGroups {
     private static final Reginth REGINTH = MyMod.reginth();
 
-    public static final ALCreativeTabSection TS_ITEMS = new ALCreativeTabSection("itemGroup.mymod.section.items");
-    public static final ALCreativeTabSection TS_BLOCKS = new ALCreativeTabSection("itemGroup.mymod.section.blocks");
+    public static final CreativeTabSection TS_ITEMS = new CreativeTabSection("itemGroup.mymod.section.items");
+    public static final CreativeTabSection TS_BLOCKS = new CreativeTabSection("itemGroup.mymod.section.blocks");
 
     public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB = REGINTH.generic("main",
             Registries.CREATIVE_MODE_TAB, () ->
-                    ALSectionedCreativeModeTab.configure(
+                    SectionedCreativeModeTab.configure(
                             CreativeModeTab.builder()
                                     .title(Component.translatable("itemGroup.mymod"))
                                     .icon(MyItems.SOME_ITEM::asStack),
@@ -600,7 +600,7 @@ public final class MyItemGroups {
 }
 ```
 
-`ALSectionedCreativeModeTab.configure(...)` 有两个重载：
+`SectionedCreativeModeTab.configure(...)` 有两个重载：
 
 ```java
 configure(builder, populator, sections...)                    // 用默认横幅样式
@@ -629,19 +629,19 @@ MyMod.reginth().item("extra_item", Item::new)
 > 因此依赖"注册期自动归类"的条目必须能被 populate 覆盖到（如遍历 `getAllItems()` 重新 add），
 > 或直接用链式 API 手动归类——这与纯 populate 驱动的写法等价。
 
-### 4.2 横幅样式（ALBannerStyle）
+### 4.2 横幅样式（BannerStyle）
 
 分区横幅是每个分区标题上方的那条色带/贴图。**样式按标签页各自独立**，建标签页时作为
-`configure(...)` 的第二个参数传入；不传则用默认样式 `ALBannerStyle.DEFAULT`（绿色系纯色，整行）。
+`configure(...)` 的第二个参数传入；不传则用默认样式 `BannerStyle.DEFAULT`（绿色系纯色，整行）。
 
 样式统一用**格数**（1~9）描述长度：每格 = 18px（创造栏一格宽），**9 = 整行 162px**。
 
 | API | 说明 |
 |---|---|
-| `ALBannerStyle.colors(背景, 暗边框, 亮边框, 文字)` | 纯色，9 格整行（颜色为 ARGB，如 `0xFF123456`） |
-| `ALBannerStyle.colors(格数, 背景, 暗边框, 亮边框, 文字)` | 纯色 + 指定格数 |
-| `ALBannerStyle.texture(格数)` | 内置预设贴图（见下表） |
-| `ALBannerStyle.texture(格数, "路径")` | 自定义贴图（支持 `"ns:path"` 或 ResourceLocation），拉伸到指定格数 |
+| `BannerStyle.colors(背景, 暗边框, 亮边框, 文字)` | 纯色，9 格整行（颜色为 ARGB，如 `0xFF123456`） |
+| `BannerStyle.colors(格数, 背景, 暗边框, 亮边框, 文字)` | 纯色 + 指定格数 |
+| `BannerStyle.texture(格数)` | 内置预设贴图（见下表） |
+| `BannerStyle.texture(格数, "路径")` | 自定义贴图（支持 `"ns:path"` 或 ResourceLocation），拉伸到指定格数 |
 | `样式.withUnits(格数)` | 在已有样式上改格数（纯色 / 贴图都有） |
 
 **格数与像素宽**：`1→18`、`2→36`、`3→54`、`4→72`、`5→90`、`6→108`、`7→126`、`8→144`、`9→162`；
@@ -656,19 +656,19 @@ N 号贴图宽 `N×18`、高 18，与格数精确对应，`texture(N)` 自动引
 
 ```java
 // 方式一：内置预设贴图，只写格数（texture(4) → banner_4.png，72px）
-ALSectionedCreativeModeTab.configure(
+SectionedCreativeModeTab.configure(
         CreativeModeTab.builder().title(…).icon(…),
-        ALBannerStyle.texture(4),
+        BannerStyle.texture(4),
         MyItemGroups::populate, TS_ITEMS)
 
 // 方式二：纯色 + 自定义格数
-ALSectionedCreativeModeTab.configure(
+SectionedCreativeModeTab.configure(
         CreativeModeTab.builder().title(…).icon(…),
-        ALBannerStyle.colors(6, 0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
+        BannerStyle.colors(6, 0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
         MyItemGroups::populate, TS_BLOCKS)
 
 // 方式三：自定义贴图 + 格数
-ALBannerStyle.texture(3, "mymod:textures/gui/creative/banner")
+BannerStyle.texture(3, "mymod:textures/gui/creative/banner")
 ```
 
 要点：

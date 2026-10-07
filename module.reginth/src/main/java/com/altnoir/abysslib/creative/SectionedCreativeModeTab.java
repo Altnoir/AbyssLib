@@ -86,8 +86,8 @@ public final class SectionedCreativeModeTab extends CreativeModeTab {
 
             // 横幅 N 格 = 该行行首 N 格为空（渲染器在此画横幅，左对齐），物品从第 N+1 格同行接续；
             // N=9 时横幅独占一整行、物品从下一行开始（与原版/默认行为一致）。
-            // 自带横幅贴图的分区用自己声明的格数（ALCreativeTabSection#bannerUnits），
-            // 没有贴图的退回标签页级 ALBannerStyle。
+            // 自带横幅贴图的分区用自己声明的格数（CreativeTabSection#bannerUnits），
+            // 没有贴图的退回标签页级 BannerStyle。
             int columns = section.hasBannerTexture() ? section.bannerUnits() : bannerStyle().units();
 
             int headingRow = newDisplayItems.size() / COLUMNS;

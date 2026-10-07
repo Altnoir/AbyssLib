@@ -21,21 +21,21 @@ import net.minecraft.resources.ResourceLocation;
  * 用法（建标签页时作为第二个参数传入 configure）：
  * <pre>{@code
  * // 纯色（默认 9 格 = 整行）：
- * ALSectionedCreativeModeTab.configure(
+ * SectionedCreativeModeTab.configure(
  *         CreativeModeTab.builder()...,
- *         ALBannerStyle.colors(0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
+ *         BannerStyle.colors(0xFF123456, 0xFF789ABC, 0xFFABCDEF, 0xFFFFFFFF),
  *         MyItemGroups::populate, TS_ITEMS).build();
  *
  * // 内置预设贴图：只写格数（1~9，9 = 整行 162px）
- * ALSectionedCreativeModeTab.configure(
+ * SectionedCreativeModeTab.configure(
  *         CreativeModeTab.builder()...,
- *         ALBannerStyle.texture(4),                                  // → banner_4.png（72px）
+ *         BannerStyle.texture(4),                                  // → banner_4.png（72px）
  *         MyItemGroups::populate, TS_ITEMS).build();
  *
  * // 自定义贴图 + 格数：
- * ALSectionedCreativeModeTab.configure(
+ * SectionedCreativeModeTab.configure(
  *         CreativeModeTab.builder()...,
- *         ALBannerStyle.texture(3, "mymod:textures/gui/creative/banner"),
+ *         BannerStyle.texture(3, "mymod:textures/gui/creative/banner"),
  *         MyItemGroups::populate, TS_ITEMS).build();
  * }</pre>
  * 不传样式时使用 {@link #DEFAULT}（AbyssLib 默认绿色系纯色，9 格整行）。

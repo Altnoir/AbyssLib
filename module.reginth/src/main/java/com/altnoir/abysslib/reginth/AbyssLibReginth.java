@@ -13,7 +13,7 @@ import org.slf4j.Logger;
  * <p>
  * 装载时自动注册分区创造栏标题渲染（{@link SectionedCreativeTabRenderer}），
  * 消费方模组无需任何调用即可获得分区标题。横幅样式（纯色/贴图）在构建标签页时按页指定，
- * 见 {@code ALSectionedCreativeModeTab.configure(..., ALBannerStyle.xxx, ...)}。
+ * 见 {@code SectionedCreativeModeTab.configure(..., BannerStyle.xxx, ...)}。
  * <p>
  * <b>命名空间</b>：创造栏横幅贴图仍在冻结的 {@link #NAMESPACE}（{@code abysslib}）命名空间下，
  * 因为那是本库从一开始就发布出去的资源路径，改名会破坏既有资源包。

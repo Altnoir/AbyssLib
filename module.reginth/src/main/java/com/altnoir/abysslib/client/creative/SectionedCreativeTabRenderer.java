@@ -38,7 +38,7 @@ import java.util.Set;
  * 用法：通常无需手动调用——AbyssLib 装载时已通过 {@code AbyssLibClient} 自动注册；
  * 也可在模组客户端入口显式调用一次（幂等）：
  * <pre>{@code
- * ALSectionedCreativeTabRenderer.register();
+ * SectionedCreativeTabRenderer.register();
  * }</pre>
  */
 public final class SectionedCreativeTabRenderer {
