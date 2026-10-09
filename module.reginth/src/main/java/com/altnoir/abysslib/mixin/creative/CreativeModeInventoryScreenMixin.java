@@ -1,7 +1,7 @@
 package com.altnoir.abysslib.mixin.creative;
 
-import com.altnoir.abysslib.client.creative.ALSectionedCreativeTabRenderer;
-import com.altnoir.abysslib.creative.ALSectionedCreativeModeTab;
+import com.altnoir.abysslib.client.creative.SectionedCreativeTabRenderer;
+import com.altnoir.abysslib.creative.SectionedCreativeModeTab;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.item.CreativeModeTab;
@@ -27,15 +27,15 @@ public class CreativeModeInventoryScreenMixin {
             float partialTick,
             CallbackInfo ci
     ) {
-        if (selectedTab instanceof ALSectionedCreativeModeTab sectionedTab) {
-            ALSectionedCreativeTabRenderer.extract(
+        if (selectedTab instanceof SectionedCreativeModeTab sectionedTab) {
+            SectionedCreativeTabRenderer.extract(
                     (CreativeModeInventoryScreen) (Object) this,
                     graphics,
                     sectionedTab,
                     scrollOffs
             );
         } else {
-            ALSectionedCreativeTabRenderer.clearHeadingSlots();
+            SectionedCreativeTabRenderer.clearHeadingSlots();
         }
     }
 }

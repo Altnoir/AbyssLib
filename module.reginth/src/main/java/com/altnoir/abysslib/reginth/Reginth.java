@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.reginth;
 
-import com.altnoir.abysslib.creative.ALCreativeTabSection;
+import com.altnoir.abysslib.creative.CreativeTabSection;
 import com.altnoir.abysslib.reginth.builders.BlockBuilder;
 import com.altnoir.abysslib.reginth.builders.ItemBuilder;
 import com.altnoir.abysslib.reginth.builders.NoConfigBuilder;
@@ -50,7 +50,7 @@ public class Reginth extends AbstractReginth<Reginth> {
 
     private final Set<String> ignoredCreativeTabEntries = new HashSet<>();
     private ResourceKey<CreativeModeTab> defaultCreativeTab;
-    private ALCreativeTabSection defaultCreativeSection;
+    private CreativeTabSection defaultCreativeSection;
 
     protected Reginth(String modId) {
         super(modId);
@@ -67,7 +67,7 @@ public class Reginth extends AbstractReginth<Reginth> {
         return super.defaultCreativeTab(creativeModeTab);
     }
 
-    public Reginth defaultCreativeSection(ALCreativeTabSection section) {
+    public Reginth defaultCreativeSection(CreativeTabSection section) {
         defaultCreativeTab = section.tab();
         defaultCreativeSection = section;
         return super.defaultCreativeTab(section.tab());

@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.mixin.creative;
 
-import com.altnoir.abysslib.client.creative.ALSectionedCreativeTabRenderer;
+import com.altnoir.abysslib.client.creative.SectionedCreativeTabRenderer;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,6 +13,6 @@ public abstract class CustomCreativeSlotMixin extends Slot {
 
     @Override
     public boolean isHighlightable() {
-        return !ALSectionedCreativeTabRenderer.isHeadingSlot(index);
+        return !SectionedCreativeTabRenderer.isHeadingSlot(index);
     }
 }

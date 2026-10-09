@@ -1,6 +1,6 @@
 package com.altnoir.abysslib.client.creative;
 
-import com.altnoir.abysslib.creative.ALSectionedCreativeModeTab;
+import com.altnoir.abysslib.creative.SectionedCreativeModeTab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
@@ -14,7 +14,7 @@ import net.minecraft.client.renderer.RenderPipelines;
  * 在标题占位行上画 sprite（有则 {@code blitSprite}）或默认绿色横幅，再写标题文字；
  * 同时维护可见标题行位掩码，供 {@code CustomCreativeSlot.isHighlightable} 屏蔽标题槽高亮。</p>
  */
-public final class ALSectionedCreativeTabRenderer {
+public final class SectionedCreativeTabRenderer {
     private static final int VISIBLE_ROWS = 5;
     private static final int GRID_LEFT = 8;
     private static final int GRID_TOP = 17;
@@ -31,7 +31,7 @@ public final class ALSectionedCreativeTabRenderer {
     public static void extract(
             CreativeModeInventoryScreen screen,
             GuiGraphicsExtractor graphics,
-            ALSectionedCreativeModeTab tab,
+            SectionedCreativeModeTab tab,
             float scrollOffset
     ) {
         int firstVisibleRow = tab.visibleStartRow(scrollOffset);
@@ -40,7 +40,7 @@ public final class ALSectionedCreativeTabRenderer {
         int headingRows = 0;
 
         graphics.nextStratum();
-        for (ALSectionedCreativeModeTab.SectionLayout section : tab.sectionLayouts()) {
+        for (SectionedCreativeModeTab.SectionLayout section : tab.sectionLayouts()) {
             int visibleRow = section.headingRow() - firstVisibleRow;
             if (visibleRow < 0 || visibleRow >= VISIBLE_ROWS) {
                 continue;
@@ -97,6 +97,6 @@ public final class ALSectionedCreativeTabRenderer {
         );
     }
 
-    private ALSectionedCreativeTabRenderer() {
+    private SectionedCreativeTabRenderer() {
     }
 }

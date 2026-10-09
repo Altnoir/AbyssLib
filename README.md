@@ -9,7 +9,7 @@ Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / modd
 
 > 与 1.21.1 线（`1.21.1-NeoForge`）的差异：**API 不通用**。
 > - 26.1 使用 `Identifier`（无 `ResourceLocation`）、`GuiGraphicsExtractor`/`RenderPipelines` 渲染管线；
-> - 分区栏为 MIA-26.1 模型（分区持 `ResourceKey<CreativeModeTab>` + `Identifier` + 可选 bannerSprite），不是 1.21.1 的 populator + ALBannerStyle 模型；
+> - 分区栏为 MIA-26.1 模型（分区持 `ResourceKey<CreativeModeTab>` + `Identifier` + 可选 bannerSprite），不是 1.21.1 的 populator + BannerStyle 模型；
 > - 访问创造栏私有成员用 **mixin `@Shadow`**（不用 AT）；
 > - 26.1 线目前**只有注册框架模块**，1.21.1 线的 `ReLink`（模型加载器）与 `Atlas`（结构扩展）**尚未移植**。
 
@@ -94,9 +94,9 @@ public class MyMod {
 行为要点：
 - 先 `REGINTH.defaultCreativeSection(section)` 设定默认分区，之后 `REGINTH.item(...)` 注册的物品会自动 `.tab(section.tab())` 并把注册名 `add` 进该分区；`block(...)` 本身不自动归类（其方块物品走 item 链触发同一逻辑）。
 - `ReginthItemBuilder.ignore()` / `ReginthBlockBuilder.ignore()` 把条目从默认创造栏剔除。
-- `object("name").creativeTab(tab -> ALSectionedCreativeModeTab.configure(...)).register()` 或 `creativeTab(...)` 便捷方法注册自定义标签页。
+- `object("name").creativeTab(tab -> SectionedCreativeModeTab.configure(...)).register()` 或 `creativeTab(...)` 便捷方法注册自定义标签页。
 
-## 分区式创造栏（ALCreativeTabSection + ALSectionedCreativeModeTab）
+## 分区式创造栏（CreativeTabSection + SectionedCreativeModeTab）
 
 分区以**注册名**收集（照 MIA-26.1），展示时经注册表惰性解析：
 
@@ -109,16 +109,16 @@ public final class MyItemGroups {
 
     // (tab, id, title[, bannerSprite]) —— bannerSprite 指向
     // assets/<ns>/textures/gui/sprites/<path>.png（162x18）；省略则画默认绿色横幅
-    public static final ALCreativeTabSection TS_ITEMS = new ALCreativeTabSection(
+    public static final CreativeTabSection TS_ITEMS = new CreativeTabSection(
             TAB_KEY, AbyssLib.modloc(MyMod.MOD_ID, "main/items"),
             Component.translatable("itemGroup.mymod.section.items"));
-    public static final ALCreativeTabSection TS_BLOCKS = new ALCreativeTabSection(
+    public static final CreativeTabSection TS_BLOCKS = new CreativeTabSection(
             TAB_KEY, AbyssLib.modloc(MyMod.MOD_ID, "main/blocks"),
             Component.translatable("itemGroup.mymod.section.blocks"));
 
     public static final RegistryEntry<CreativeModeTab, CreativeModeTab> TAB = REGINTH
             .object("main")
-            .creativeTab(tab -> ALSectionedCreativeModeTab.configure(
+            .creativeTab(tab -> SectionedCreativeModeTab.configure(
                     tab.icon(MyItems.SOME_ITEM::asStack),
                     TS_ITEMS, TS_BLOCKS))
             .register();
@@ -142,7 +142,7 @@ public final class MyItems {
 
 客户端标题渲染**开箱即用、无需任何客户端代码**：`AbyssLib-Reginth` 模块自带的两个 client mixin
 （`CreativeModeInventoryScreen.extractBackground` TAIL 注入 + `CustomCreativeSlot.isHighlightable` 屏蔽标题槽）
-会自动处理任何 `ALSectionedCreativeModeTab`。
+会自动处理任何 `SectionedCreativeModeTab`。
 
 ## 消费方 build.gradle 接入
 

@@ -19,23 +19,23 @@ import java.util.Set;
  * <p>内容按分区划分为带标题、可滚动的区块；每个分区为其标题保留一整行物品格。
  * 客户端渲染器绘制该行，物品网格/滚动/搜索仍交给原版。</p>
  */
-public final class ALSectionedCreativeModeTab extends CreativeModeTab {
+public final class SectionedCreativeModeTab extends CreativeModeTab {
     private static final int COLUMNS = 9;
     private static final int VISIBLE_ROWS = 5;
 
-    private final List<ALCreativeTabSection> sections;
+    private final List<CreativeTabSection> sections;
     private Collection<ItemStack> displayItems = List.of();
     private Set<ItemStack> searchItems = ItemStackLinkedSet.createTypeAndComponentsSet();
     private List<SectionLayout> sectionLayouts = List.of();
 
-    private ALSectionedCreativeModeTab(Builder builder, List<ALCreativeTabSection> sections) {
+    private SectionedCreativeModeTab(Builder builder, List<CreativeTabSection> sections) {
         super(builder);
         this.sections = List.copyOf(sections);
     }
 
-    public static Builder configure(Builder builder, ALCreativeTabSection... sections) {
-        List<ALCreativeTabSection> sectionList = List.of(sections);
-        return builder.withTabFactory(tabBuilder -> new ALSectionedCreativeModeTab(tabBuilder, sectionList));
+    public static Builder configure(Builder builder, CreativeTabSection... sections) {
+        List<CreativeTabSection> sectionList = List.of(sections);
+        return builder.withTabFactory(tabBuilder -> new SectionedCreativeModeTab(tabBuilder, sectionList));
     }
 
     @Override
@@ -45,7 +45,7 @@ public final class ALSectionedCreativeModeTab extends CreativeModeTab {
         Set<ItemStack> seenDisplayItems = ItemStackLinkedSet.createTypeAndComponentsSet();
         List<SectionLayout> newLayouts = new ArrayList<>();
 
-        for (ALCreativeTabSection section : sections) {
+        for (CreativeTabSection section : sections) {
             List<ItemStack> enabledItems = new ArrayList<>();
             for (ItemStack stack : section.itemStacks()) {
                 if (stack.getItem().isEnabled(parameters.enabledFeatures()) && seenDisplayItems.add(stack)) {

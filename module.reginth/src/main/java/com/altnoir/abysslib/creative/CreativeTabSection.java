@@ -22,14 +22,14 @@ import java.util.Set;
  * <p>条目以注册名（Identifier）存储，因此 builder 可在物品注册完成前先把自己分进某区；
  * 展示时再经注册表惰性解析。</p>
  */
-public final class ALCreativeTabSection {
+public final class CreativeTabSection {
     private final ResourceKey<CreativeModeTab> tab;
     private final Identifier id;
     private final Component title;
     private final @Nullable Identifier bannerSprite;
     private final Set<Identifier> itemIds = new LinkedHashSet<>();
 
-    public ALCreativeTabSection(ResourceKey<CreativeModeTab> tab, Identifier id, Component title) {
+    public CreativeTabSection(ResourceKey<CreativeModeTab> tab, Identifier id, Component title) {
         this(tab, id, title, null);
     }
 
@@ -39,7 +39,7 @@ public final class ALCreativeTabSection {
      * <p>sprite id 遵循原版 GUI sprite 约定，指向
      * {@code assets/<namespace>/textures/gui/sprites/<path>.png}；不传时渲染器画默认横幅。</p>
      */
-    public ALCreativeTabSection(
+    public CreativeTabSection(
             ResourceKey<CreativeModeTab> tab,
             Identifier id,
             Component title,
