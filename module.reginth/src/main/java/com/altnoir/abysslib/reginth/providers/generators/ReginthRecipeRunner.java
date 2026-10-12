@@ -7,6 +7,7 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.neoforged.fml.LogicalSide;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -14,7 +15,7 @@ public class ReginthRecipeRunner extends RecipeProvider.Runner implements Regint
 
 	final AbstractReginth<?> owner;
 
-	@org.jetbrains.annotations.Nullable
+	@Nullable
 	ReginthRecipeProvider provider;
 
 	public ReginthRecipeRunner(AbstractReginth<?> owner, PackOutput p_365369_, CompletableFuture<HolderLookup.Provider> p_361563_) {

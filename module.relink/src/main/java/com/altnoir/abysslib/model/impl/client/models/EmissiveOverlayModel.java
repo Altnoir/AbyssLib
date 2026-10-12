@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
@@ -82,7 +83,7 @@ public final class EmissiveOverlayModel extends DelegateBlockStateModel {
         }
 
         @Override
-        public net.minecraft.client.resources.model.sprite.Material.Baked particleMaterial() {
+        public Material.Baked particleMaterial() {
             return this.delegate.particleMaterial();
         }
 

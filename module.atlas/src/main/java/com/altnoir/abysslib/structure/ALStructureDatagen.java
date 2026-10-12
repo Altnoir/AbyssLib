@@ -1,5 +1,7 @@
 package com.altnoir.abysslib.structure;
 
+import com.altnoir.abysslib.reginth.AbstractReginth;
+import com.altnoir.abysslib.reginth.providers.DataProviderInitializer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
@@ -74,11 +76,11 @@ public final class ALStructureDatagen {
                         new ALGridPlacement(profiles.getOrThrow(profileKey))));
     }
 
-    public void register(com.altnoir.abysslib.reginth.AbstractReginth<?> reginth) {
+    public void register(AbstractReginth<?> reginth) {
         this.register(reginth.getDataGenInitializer());
     }
 
-    public void register(com.altnoir.abysslib.reginth.providers.DataProviderInitializer initializer) {
+    public void register(DataProviderInitializer initializer) {
         if (!this.profiles.isEmpty()) {
             initializer.add(ALGridProfile.KEY, this::bootstrapProfiles);
         }

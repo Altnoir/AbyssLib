@@ -1,2 +1,4 @@
-@org.jspecify.annotations.NullMarked
+@NullMarked
 package com.altnoir.abysslib.reginth.util.nullness;
+
+import org.jspecify.annotations.NullMarked;

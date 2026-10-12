@@ -15,7 +15,10 @@ import net.minecraft.resources.Identifier;
 import net.neoforged.fml.LogicalSide;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.common.conditions.WithConditions;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class ReginthAdvancementProvider implements ReginthProvider, Consumer<AdvancementHolder> {
-    private static final org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger(ReginthAdvancementProvider.class);
+    private static final Logger log = LogManager.getLogger(ReginthAdvancementProvider.class);
     private final AbstractReginth<?> owner;
     private final PackOutput packOutput;
     private final CompletableFuture<HolderLookup.Provider> registriesLookup;

@@ -1,6 +1,7 @@
 package com.altnoir.abysslib.datagen;
 
 import com.altnoir.abysslib.model.AbyssLibReLink;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.Identifier;
@@ -113,7 +114,7 @@ public final class ALModelDefinition {
      * 固定颜色（ARGB）。
      */
     public ALModelDefinition tint(int r, int g, int b, int a) {
-        var tint = new com.google.gson.JsonArray();
+        var tint = new JsonArray();
         tint.add(r);
         tint.add(g);
         tint.add(b);

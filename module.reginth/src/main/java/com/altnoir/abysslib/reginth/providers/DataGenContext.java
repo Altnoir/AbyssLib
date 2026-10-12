@@ -86,7 +86,7 @@ public final class DataGenContext<R, E extends R> implements NonNullSupplier<E> 
         return this.entry.get();
     }
 
-    public com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier<E> lazy() {
+    public NonNullSupplier<E> lazy() {
         return this.entry.lazy();
     }
 }

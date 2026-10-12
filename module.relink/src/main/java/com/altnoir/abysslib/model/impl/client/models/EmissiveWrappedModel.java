@@ -1,11 +1,14 @@
 package com.altnoir.abysslib.model.impl.client.models;
 
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
 import org.jetbrains.annotations.Nullable;
@@ -14,14 +17,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class EmissiveWrappedModel extends DelegateBlockStateModel {
-    public EmissiveWrappedModel(net.minecraft.client.renderer.block.dispatch.BlockStateModel delegate) {
+    public EmissiveWrappedModel(BlockStateModel delegate) {
         super(delegate);
     }
 
     @Override
     @Deprecated
     public void collectParts(RandomSource random, List<BlockStateModelPart> parts) {
-        collectParts(BlockAndTintGetter.EMPTY, BlockPos.ZERO, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), random, parts);
+        collectParts(BlockAndTintGetter.EMPTY, BlockPos.ZERO, Blocks.AIR.defaultBlockState(), random, parts);
     }
 
     @Override
@@ -44,7 +47,7 @@ public final class EmissiveWrappedModel extends DelegateBlockStateModel {
         }
 
         @Override
-        public net.minecraft.client.resources.model.sprite.Material.Baked particleMaterial() {
+        public Material.Baked particleMaterial() {
             return this.delegate.particleMaterial();
         }
 

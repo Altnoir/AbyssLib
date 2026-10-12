@@ -14,6 +14,7 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 // 将同一 profile 应用于结构足迹内的所有区块。
 public class ALGridPlacement extends RandomSpreadStructurePlacement {
@@ -83,8 +84,8 @@ public class ALGridPlacement extends RandomSpreadStructurePlacement {
         return this.profile.value().potentialCenterChunk(seed, x, z);
     }
 
-    private static final java.util.concurrent.atomic.AtomicBoolean FIRST_CALL_LOGGED =
-            new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static final AtomicBoolean FIRST_CALL_LOGGED =
+            new AtomicBoolean(false);
 
     @Override
     protected boolean isPlacementChunk(ChunkGeneratorStructureState structureState, int x, int z) {

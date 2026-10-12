@@ -1,10 +1,10 @@
 package com.altnoir.abysslib.reginth.providers.generators;
 
-import javax.annotation.CheckReturnValue;
-
 import com.altnoir.abysslib.reginth.providers.ProviderType;
 import com.altnoir.abysslib.reginth.util.DataIngredient;
 import com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.criterion.EnterBlockTrigger;
 import net.minecraft.advancements.criterion.InventoryChangeTrigger;
@@ -29,7 +29,10 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SuspiciousEffectHolder;
 import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import org.jspecify.annotations.Nullable;
+
+import javax.annotation.CheckReturnValue;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -890,11 +893,11 @@ public class ReginthRecipeProvider extends RecipeProvider implements RecipeOutpu
         return super.shapeless(category, item, count);
     }
 
-    public void accept(final net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> id, final net.minecraft.world.item.crafting.Recipe<?> recipe, final net.minecraft.advancements.AdvancementHolder advancement) {
+    public void accept(final ResourceKey<Recipe<?>> id, final Recipe<?> recipe, final AdvancementHolder advancement) {
         this.outputDelegated.accept(id, recipe, advancement);
     }
 
-    public net.minecraft.advancements.Advancement.Builder advancement() {
+    public Advancement.Builder advancement() {
         return this.outputDelegated.advancement();
     }
 
@@ -902,11 +905,11 @@ public class ReginthRecipeProvider extends RecipeProvider implements RecipeOutpu
         this.outputDelegated.includeRootAdvancement();
     }
 
-    public void accept(final net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> arg0, final net.minecraft.world.item.crafting.Recipe<?> arg1, final net.minecraft.advancements.AdvancementHolder arg2, final net.neoforged.neoforge.common.conditions.ICondition... arg3) {
+    public void accept(final ResourceKey<Recipe<?>> arg0, final Recipe<?> arg1, final AdvancementHolder arg2, final ICondition... arg3) {
         this.outputDelegated.accept(arg0, arg1, arg2, arg3);
     }
 
-    public net.minecraft.data.recipes.RecipeOutput withConditions(final net.neoforged.neoforge.common.conditions.ICondition... conditions) {
+    public RecipeOutput withConditions(final ICondition... conditions) {
         return this.outputDelegated.withConditions(conditions);
     }
     // GENERATED END

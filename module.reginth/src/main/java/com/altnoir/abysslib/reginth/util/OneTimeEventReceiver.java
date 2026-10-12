@@ -11,13 +11,16 @@ import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class OneTimeEventReceiver<T extends Event> implements Consumer<T> {
-    private static final org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger(OneTimeEventReceiver.class);
+    private static final Logger log = LogManager.getLogger(OneTimeEventReceiver.class);
 
     public static <T extends Event & IModBusEvent> void addModListener(AbstractReginth<?> owner, Class<? super T> evtClass, Consumer<? super T> listener) {
         OneTimeEventReceiver.<T>addModListener(owner, EventPriority.NORMAL, evtClass, listener);

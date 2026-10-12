@@ -11,7 +11,10 @@ import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -21,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ReginthDataProvider implements DataProvider {
-	private static final org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger(ReginthDataProvider.class);
+	private static final Logger log = LogManager.getLogger(ReginthDataProvider.class);
 	@SuppressWarnings("null")
 	static final BiMap<String, ProviderType<?>> TYPES = HashBiMap.create();
 	static final Map<ResourceKey<? extends Registry<?>>, ProviderType<?>> TAG_TYPES = new ConcurrentHashMap<>();
