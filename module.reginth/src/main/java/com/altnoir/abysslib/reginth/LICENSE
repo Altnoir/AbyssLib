@@ -1,0 +1,28 @@
+Registrate-derived source scope
+==============================
+
+All Java source files in this directory and its subdirectories are derived
+from Registrate MC26.1-1.5.7 and are licensed under the Mozilla Public License,
+v. 2.0, except for these independently authored AbyssLib integration files:
+
+  Reginth.java
+  builders/ReginthBlockBuilder.java
+  builders/ReginthItemBuilder.java
+
+Those three files use the AbyssLib MIT license in the repository root LICENSE
+(or META-INF/LICENSE in a distributed JAR). Other AbyssLib source directories
+are outside the scope of this notice.
+
+Original Registrate work: tterrag1098 and the Registrate contributors.
+AbyssLib modifications: Copyright (c) 2026 Altnoir.
+Existing notices and the upstream authors' rights are preserved.
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+The complete MPL text is in LICENSES/Registrate-MPL-2.0.txt at the repository
+root, or META-INF/licenses/Registrate-MPL-2.0.txt in a distributed JAR.
+See THIRD_PARTY_NOTICES.md (META-INF/THIRD_PARTY_NOTICES.md in a JAR) for
+the source origin, changes, and instructions for obtaining the corresponding
+modified source.

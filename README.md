@@ -5,13 +5,13 @@ Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / modd
 - 包名：`com.altnoir.abysslib`
 - 作者：Altnoir
 - 分支：`26.1.2-NeoForge`（独立 git worktree：`D:\Minecraft\ModDev\AbyssLib-26.1.2`）
-- 版本：`1.0.0`
+- 版本：`1.0-01`（以根目录 `gradle.properties` 为准）
 
 > 与 1.21.1 线（`1.21.1-NeoForge`）的差异：**API 不通用**。
 > - 26.1 使用 `Identifier`（无 `ResourceLocation`）、`GuiGraphicsExtractor`/`RenderPipelines` 渲染管线；
 > - 分区栏为 MIA-26.1 模型（分区持 `ResourceKey<CreativeModeTab>` + `Identifier` + 可选 bannerSprite），不是 1.21.1 的 populator + BannerStyle 模型；
 > - 访问创造栏私有成员用 **mixin `@Shadow`**（不用 AT）；
-> - 26.1 线目前**只有注册框架模块**，1.21.1 线的 `ReLink`（模型加载器）与 `Atlas`（结构扩展）**尚未移植**。
+> - 当前包含 `Reginth`（注册框架）、`ReLink`（模型加载器）与 `Atlas`（结构扩展），均已接入 26.1.2 构建。
 
 ## 模块化结构
 
@@ -19,8 +19,10 @@ Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / modd
 
 | 模块 | artifactId（group `com.altnoir`） | modid | 内容 |
 |---|---|---|---|
-| **AbyssLib**（聚合） | `abysslib-26.1.2` | `abysslib` | 内嵌 `abysslib-reginth-26.1.2` 的 jar（jarJar），**装这一个就等于装全部**；另含 `AbyssLib` 门面工具 |
+| **AbyssLib**（聚合） | `abysslib-26.1.2` | `abysslib` | 内嵌 Reginth、ReLink、Atlas 三个模块的 jar（jarJar），**装这一个就等于装全部**；另含 `AbyssLib` 门面工具 |
 | **AbyssLib-Reginth** | `abysslib-reginth-26.1.2` | `abysslib_reginth` | 注册框架 **`Reginth`**（源码级内嵌自上游 Registrate `MC26.1-1.5.7`，包名与类名已改）+ 分区式创造栏 |
+| **AbyssLib-ReLink** | `abysslib-relink-26.1.2` | `abysslib_relink` | 移植自 Athena 的 CTM / 动态模型加载器，以及发光与 Athena 格式兼容扩展 |
+| **AbyssLib-Atlas** | `abysslib-atlas-26.1.2` | `abysslib_atlas` | 结构上限扩展与大型结构放置 |
 
 > **artifactId 里的 `-26.1.2` 是 MC 线标识，必须保留**。本库按 MC 版本分线，1.21.1 线的坐标是
 > `com.altnoir:abysslib-1.21.1` / `com.altnoir:abysslib-reginth-1.21.1`。两条线用**同一个 group 和同一个
@@ -28,21 +30,22 @@ Altnoir 系列模组的公共前置库（NeoForge **26.1.2.94** / Java 25 / modd
 > **静默覆盖**先发布的，消费方拿到的就是错 MC 版本的 jar。后缀由根 `gradle.properties` 的
 > `mod_mc_suffix` 一处定义，`settings.gradle` 据此命名 Gradle 项目（项目名 == artifactId）。
 
-- 目录：`module.reginth/`、`module.main/`（详见仓库里的 `settings.gradle`）。
+- 目录：`module.reginth/`、`module.relink/`、`module.atlas/`、`module.main/`（详见仓库里的 `settings.gradle`）。
 - **不再依赖 `maven.gegy.dev` 的 Registrate**，也不再 `jarJar` / `api` 暴露它 —— 类就在本库 jar 里，天然单副本、无版本冲突。
 - **Simple Bedrock Model / mae 不由本库内置**；需要 SBM 的模组自行以本地 libs + jarJar 提供。
 
 ## 构建 / 发布
 
 ```bash
-./gradlew build          # 两个 jar 分别在 module.*/build/libs/，文件名即坐标
-./gradlew publish        # 两个坐标一起发布到 maven.ringlo.im/releases（需要凭证）
+./gradlew build          # 四个模块的二进制 jar 和 sources.jar 位于各自 build/libs/
+./gradlew publish        # 四个坐标及对应源码包一起发布到 maven.ringlo.im/releases（需要凭证）
 ./gradlew :abysslib-26.1.2:runClient    # run 配置只定义在聚合模块
 ./gradlew :abysslib-26.1.2:runServer
 ```
 
 > artifactId 由 Gradle 项目名决定（`settings.gradle` 里按 `mod_mc_suffix` 改名），坐标为
-> `com.altnoir:abysslib-26.1.2:<版本>` 与 `com.altnoir:abysslib-reginth-26.1.2:<版本>`。
+> `com.altnoir:abysslib-26.1.2:<版本>`、`com.altnoir:abysslib-reginth-26.1.2:<版本>`、
+> `com.altnoir:abysslib-relink-26.1.2:<版本>`、`com.altnoir:abysslib-atlas-26.1.2:<版本>`。
 > 各模块 `build.gradle` 里**没有** `base { archivesName = ... }`——默认值就是项目名，jar 名与坐标不会对不上。
 
 > **跑 run 需要 Java 21 工具链**：ModDevGradle 的 `downloadAssets` 任务要求 Java 21，而工程本身target Java 25。
@@ -184,6 +187,29 @@ side = "BOTH"
   实际用的是 mixin `@Shadow`，该 AT **可能是历史遗留**（未清理，保留以零风险；确认无用后可删）。
 - 分区每占用一整个标题行（displayItems 内为真实 EMPTY 占位）；滚动行号公式与 26.1 `ItemPickerMenu` 一致。
 - 数据生成注意：多模组并存时 Registrate 的 unassociated BLOCK_TAGS 生成器存在并发竞态，世界生成标签建议用自定义 DataProvider 在 addTags 阶段直填。
-- **许可**：本库自身代码为 **MIT**，见根目录 [`LICENSE`](LICENSE)（`Copyright (c) 2026 Altnoir`）。
-  该文件由根 `build.gradle` 的 `processResources` 复制进每个模块产物的 `META-INF/LICENSE`
-  （MIT 要求再分发时保留版权与许可声明，**不要**从 build 配置里删掉那段）。
+
+## 许可与第三方声明
+
+本库独立编写的代码采用 **MIT**，见根目录 [`LICENSE`](LICENSE)（`Copyright (c) 2026 Altnoir`）。
+内嵌第三方源码及其修改分别遵循原许可证，完整来源、修改说明和适用范围见
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+
+| 内容 | 来源与许可 | 源码范围说明 |
+|---|---|---|
+| 注册框架底层及其修改 | Registrate `MC26.1-1.5.7`，**MPL-2.0** | [`reginth/LICENSE`](module.reginth/src/main/java/com/altnoir/abysslib/reginth/LICENSE)；其中列明的独立接入文件继续使用 MIT |
+| CTM / 模型加载实现 | Athena 1.21.1 线，**MIT**，`Copyright (c) 2024 Terrarium Earth` | [`model/LICENSE`](module.relink/src/main/java/com/altnoir/abysslib/model/LICENSE) |
+
+各模块的二进制 JAR 和源码 JAR 均携带 `META-INF/LICENSE`、
+`META-INF/THIRD_PARTY_NOTICES.md` 与 `META-INF/licenses/` 下的第三方许可证全文。
+Reginth 与聚合包的许可元数据标为 `MIT AND MPL-2.0`，两种许可分别适用于各自文件，
+并非可任选一种替代；独立原创文件继续使用 MIT。
+
+**取得对应修改后源码**：Reginth 二进制 JAR 的
+`META-INF/sources/com/altnoir/abysslib/reginth/` 内直接包含本次构建的注册框架 Java 源码及许可范围声明。
+聚合包用户先打开 `META-INF/jarjar/` 内的 Reginth JAR，再提取上述目录即可。
+也可取得与二进制版本一致的 Maven 源码包：
+`com.altnoir:abysslib-reginth-26.1.2:<版本>:sources`。
+其他模块也生成和发布同版本 `sources` 包；聚合模块的源码包仅包含聚合模块自身源码。
+
+再分发时应保留第三方版权、许可声明及 MPL 覆盖源码的获取方式。
+不要移除构建脚本中的声明打包和 Reginth 源码随附配置。

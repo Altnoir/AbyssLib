@@ -27,7 +27,26 @@ subprojects {
     }
 
     // NeoForge 26.1.2 / Java 25
-    java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(25)
+        withSourcesJar()
+    }
+
+    def licenseFiles = copySpec {
+        from(rootProject.file('LICENSE')) {
+            into 'META-INF'
+        }
+        from(rootProject.file('THIRD_PARTY_NOTICES.md')) {
+            into 'META-INF'
+        }
+        from(rootProject.file('LICENSES')) {
+            into 'META-INF/licenses'
+        }
+    }
+
+    tasks.named('sourcesJar', Jar).configure {
+        with licenseFiles
+    }
 
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
@@ -38,7 +57,7 @@ subprojects {
     }
 
     // neoForge.mods.toml 的占位符展开 + 许可随分发一同打包。
-    // （MIT 要求再分发时保留版权与许可声明，LICENSE 会被复制进 META-INF/）
+    // 各模块及源码包携带同一份声明，具体许可范围由第三方声明和源码目录 LICENSE 界定。
     tasks.named('processResources', ProcessResources).configure {
         var replaceProperties = [
                 minecraft_version      : minecraft_version,
@@ -58,9 +77,7 @@ subprojects {
             expand replaceProperties
         }
 
-        from(rootProject.file('LICENSE')) {
-            into 'META-INF'
-        }
+        with licenseFiles
     }
 
     // 防护：本库是纯代码前置库，不向发布产物里塞原版资源覆盖（assets/minecraft/**）。
@@ -76,6 +93,24 @@ subprojects {
         publications {
             register('mavenJava', MavenPublication) {
                 from components.java
+
+                pom {
+                    url = 'https://github.com/Altnoir/AbyssLib'
+                    licenses {
+                        license {
+                            name = 'MIT License (see THIRD_PARTY_NOTICES.md for scope and attribution)'
+                            url = 'https://opensource.org/license/mit/'
+                            distribution = 'repo'
+                        }
+                        if (mod_license.contains('MPL-2.0')) {
+                            license {
+                                name = 'Mozilla Public License 2.0 (Registrate-derived source files)'
+                                url = 'https://www.mozilla.org/MPL/2.0/'
+                                distribution = 'repo'
+                            }
+                        }
+                    }
+                }
             }
         }
         repositories {

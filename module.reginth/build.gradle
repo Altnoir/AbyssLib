@@ -21,3 +21,12 @@ dependencies {
     // Reginth 是底座：注册框架的源码就在本模块里，没有任何 AbyssLib 内部依赖，
     // 也不再依赖上游 com.tterrag.registrate（包名与类名都已改为本库命名空间）。
 }
+
+// 随二进制保留本次构建的注册框架源码，独立分发 JAR 时也能取得 MPL 对应源码。
+tasks.named('processResources', ProcessResources).configure {
+    from('src/main/java') {
+        include 'com/altnoir/abysslib/reginth/**/*.java'
+        include 'com/altnoir/abysslib/reginth/LICENSE'
+        into 'META-INF/sources'
+    }
+}
