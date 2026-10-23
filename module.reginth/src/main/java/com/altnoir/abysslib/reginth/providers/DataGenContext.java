@@ -7,6 +7,8 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Objects;
+
 /**
  * A context bean passed to data generator callbacks. Contains the entry that data is being created for, and some metadata about the entry.
  *
@@ -32,7 +34,7 @@ public final class DataGenContext<R, E extends R> implements NonNullSupplier<E> 
     }
 
     public static <R, E extends R> DataGenContext<R, E> from(Builder<R, E, ?, ?> builder) {
-        return new DataGenContext<>(NonNullSupplier.of(builder.getOwner().<R, E>get(builder.getName(), builder.getRegistryKey())), builder.getName(), ResourceLocation.fromNamespaceAndPath(builder.getOwner().getModid(), builder.getName()));
+        return new DataGenContext<>(NonNullSupplier.of(builder.getOwner().get(builder.getName(), builder.getRegistryKey())), builder.getName(), ResourceLocation.fromNamespaceAndPath(builder.getOwner().getModid(), builder.getName()));
     }
 
     public DataGenContext(final NonNullSupplier<E> entry, final String name, final ResourceLocation id) {
@@ -52,18 +54,16 @@ public final class DataGenContext<R, E extends R> implements NonNullSupplier<E> 
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof DataGenContext)) return false;
-        final DataGenContext<?, ?> other = (DataGenContext<?, ?>) o;
+        if (!(o instanceof DataGenContext<?, ?> other)) return false;
         final Object this$entry = this.getEntry();
         final Object other$entry = other.getEntry();
-        if (this$entry == null ? other$entry != null : !this$entry.equals(other$entry)) return false;
+        if (!Objects.equals(this$entry, other$entry)) return false;
         final Object this$name = this.getName();
         final Object other$name = other.getName();
-        if (this$name == null ? other$name != null : !this$name.equals(other$name)) return false;
+        if (!Objects.equals(this$name, other$name)) return false;
         final Object this$id = this.getId();
         final Object other$id = other.getId();
-        if (this$id == null ? other$id != null : !this$id.equals(other$id)) return false;
-        return true;
+        return Objects.equals(this$id, other$id);
     }
 
     @Override
@@ -88,7 +88,7 @@ public final class DataGenContext<R, E extends R> implements NonNullSupplier<E> 
         return this.entry.get();
     }
 
-    public com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier<E> lazy() {
+    public NonNullSupplier<E> lazy() {
         return this.entry.lazy();
     }
 }

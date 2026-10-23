@@ -14,6 +14,7 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <b>{@code atlas:per_chunk}</b> —— 逐 chunk 放置：让大型结构"足迹范围内的每个 chunk 都各自持有一份结构起点"。
@@ -52,7 +53,7 @@ import java.util.Optional;
  */
 public class ALGridPlacement extends RandomSpreadStructurePlacement {
 
-    public static final MapCodec<ALGridPlacement> CODEC = RecordCodecBuilder.<ALGridPlacement>mapCodec(
+    public static final MapCodec<ALGridPlacement> CODEC = RecordCodecBuilder.mapCodec(
             instance -> instance.group(
                             // 这几个基类访问器是 protected，跨包不能用方法引用（会报"protected 访问控制"），
                             // 必须写成显式参数类型的 lambda（原版 placementCodec 能写方法引用是因为它在基类内部）
@@ -136,8 +137,8 @@ public class ALGridPlacement extends RandomSpreadStructurePlacement {
      * 只在第一次被调用时打一条 DEBUG（排查用）：用来区分"placement 从未被咨询"（说明结构集没进
      * {@code possibleStructureSets()}）与"咨询了但从未命中"。不会刷屏。
      */
-    private static final java.util.concurrent.atomic.AtomicBoolean FIRST_CALL_LOGGED =
-            new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static final AtomicBoolean FIRST_CALL_LOGGED =
+            new AtomicBoolean(false);
 
     /** 只要求"落在某个结构中心的足迹内"，而不是"正好是中心那个 chunk"。 */
     @Override

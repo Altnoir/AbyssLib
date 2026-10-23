@@ -1,15 +1,11 @@
 package com.altnoir.abysslib.reginth.util;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 import com.google.common.collect.ObjectArrays;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.altnoir.abysslib.reginth.providers.ReginthRecipeProvider;
 import com.altnoir.abysslib.reginth.util.nullness.NonNullSupplier;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.InventoryChangeTrigger;
 import net.minecraft.advancements.critereon.ItemPredicate;
@@ -23,6 +19,13 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.common.crafting.ICustomIngredient;
 import net.neoforged.neoforge.common.crafting.IngredientType;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * A helper for data generation when using ingredients as input(s) to recipes.<br>
@@ -113,11 +116,11 @@ public final class DataIngredient {
         return this.id;
     }
 
-    public boolean test(final net.minecraft.world.item.ItemStack p_43914_) {
+    public boolean test(final ItemStack p_43914_) {
         return this.parent.test(p_43914_);
     }
 
-    public it.unimi.dsi.fastutil.ints.IntList getStackingIds() {
+    public IntList getStackingIds() {
         return this.parent.getStackingIds();
     }
 
@@ -133,7 +136,7 @@ public final class DataIngredient {
         return this.parent.isSimple();
     }
 
-    public net.neoforged.neoforge.common.crafting.ICustomIngredient getCustomIngredient() {
+    public ICustomIngredient getCustomIngredient() {
         return this.parent.getCustomIngredient();
     }
 
@@ -141,15 +144,15 @@ public final class DataIngredient {
         return this.parent.isCustom();
     }
 
-    public java.util.function.Predicate<net.minecraft.world.item.ItemStack> and(final java.util.function.Predicate<? super net.minecraft.world.item.ItemStack> other) {
+    public Predicate<ItemStack> and(final Predicate<? super ItemStack> other) {
         return this.parent.and(other);
     }
 
-    public java.util.function.Predicate<net.minecraft.world.item.ItemStack> negate() {
+    public Predicate<ItemStack> negate() {
         return this.parent.negate();
     }
 
-    public java.util.function.Predicate<net.minecraft.world.item.ItemStack> or(final java.util.function.Predicate<? super net.minecraft.world.item.ItemStack> other) {
+    public Predicate<ItemStack> or(final Predicate<? super ItemStack> other) {
         return this.parent.or(other);
     }
 }

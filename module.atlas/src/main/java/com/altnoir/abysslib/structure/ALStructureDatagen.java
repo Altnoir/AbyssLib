@@ -1,5 +1,7 @@
 package com.altnoir.abysslib.structure;
 
+import com.altnoir.abysslib.reginth.AbstractReginth;
+import com.altnoir.abysslib.reginth.providers.DataProviderInitializer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.RegistrySetBuilder;
@@ -116,12 +118,12 @@ public final class ALStructureDatagen {
     }
 
     /** 接进 reginth：内部就是三条 {@code DataProviderInitializer#add}（空集合会跳过）。 */
-    public void register(com.altnoir.abysslib.reginth.AbstractReginth<?> reginth) {
+    public void register(AbstractReginth<?> reginth) {
         this.register(reginth.getDataGenInitializer());
     }
 
     /** 接进 reginth 的 provider 初始化器（不想依赖 {@code AbstractReginth} 时的入口）。 */
-    public void register(com.altnoir.abysslib.reginth.providers.DataProviderInitializer initializer) {
+    public void register(DataProviderInitializer initializer) {
         if (!this.profiles.isEmpty()) {
             initializer.add(ALGridProfile.KEY, this::bootstrapProfiles);
         }

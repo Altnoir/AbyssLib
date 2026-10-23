@@ -101,7 +101,7 @@ public class BlockBuilder<T extends Block, P> extends AbstractBuilder<Block, T, 
     
     private NonNullSupplier<BlockBehaviour.Properties> initialProperties;
     private NonNullFunction<BlockBehaviour.Properties, BlockBehaviour.Properties> propertiesCallback = NonNullUnaryOperator.identity();
-    private List<Supplier<Supplier<RenderType>>> renderLayers = new ArrayList<>(1);
+    private final List<Supplier<Supplier<RenderType>>> renderLayers = new ArrayList<>(1);
 
     @Nullable
     private NonNullSupplier<Supplier<BlockColor>> colorHandler;
@@ -208,7 +208,7 @@ public class BlockBuilder<T extends Block, P> extends AbstractBuilder<Block, T, 
     public <I extends Item> ItemBuilder<I, BlockBuilder<T, P>> item(NonNullBiFunction<? super T, Item.Properties, ? extends I> factory) {
         final var sup = asSupplier();
         return getOwner().<I, BlockBuilder<T, P>> item(this, getName(), p -> factory.apply(getEntry(), p))
-                .setData(ProviderType.LANG, NonNullBiConsumer.noop()) // FIXME Need a beetter API for "unsetting" providers
+                .setData(ProviderType.LANG, NonNullBiConsumer.noop()) // noop 即取消该 provider，没有专门的取消 API
                 .model((ctx, prov) -> {
                     Optional<String> model = getOwner().getDataProvider(ProviderType.BLOCKSTATE)
                             .flatMap(p -> p.getExistingVariantBuilder(getEntry()))
@@ -250,7 +250,7 @@ public class BlockBuilder<T extends Block, P> extends AbstractBuilder<Block, T, 
      * @return the {@link BlockEntityBuilder}
      */
     public <BE extends BlockEntity> BlockEntityBuilder<BE, BlockBuilder<T, P>> blockEntity(BlockEntityFactory<BE> factory) {
-        return getOwner().<BE, BlockBuilder<T, P>>blockEntity(this, getName(), factory).validBlock(asSupplier());
+        return getOwner().blockEntity(this, getName(), factory).validBlock(asSupplier());
     }
     
     /**
@@ -260,7 +260,6 @@ public class BlockBuilder<T extends Block, P> extends AbstractBuilder<Block, T, 
      *            The color handler to register for this block
      * @return this {@link BlockBuilder}
      */
-    // TODO it might be worthwhile to abstract this more and add the capability to automatically copy to the item
     public BlockBuilder<T, P> color(NonNullSupplier<Supplier<BlockColor>> colorHandler) {
         if (this.colorHandler == null) {
             ReginthDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> this::registerBlockColor);

@@ -22,8 +22,8 @@ public final class CreativeModeTabModifier implements CreativeModeTab.Output {
         this.flags = flags;
         this.hasPermissions = hasPermissions;
         this.acceptFunc = acceptFunc;
-		this.parameters = parameters;
-	}
+        this.parameters = parameters;
+    }
 
     public FeatureFlagSet getFlags() {
         return flags.get();

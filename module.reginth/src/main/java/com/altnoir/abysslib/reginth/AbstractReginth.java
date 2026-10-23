@@ -45,6 +45,8 @@ import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.registries.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.Message;
 
 import javax.annotation.Nonnull;
@@ -80,7 +82,7 @@ import java.util.stream.Collectors;
  * For specifics as to building different registry entries, read the documentation on their respective builders.
  */
 public abstract class AbstractReginth<S extends AbstractReginth<S>> {
-    private static final org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger(AbstractReginth.class);
+    private static final Logger log = LogManager.getLogger(AbstractReginth.class);
 
 
     private final class Registration<R, T extends R> {
@@ -128,25 +130,22 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
         @Override
         public boolean equals(final Object o) {
             if (o == this) return true;
-            if (!(o instanceof AbstractReginth.Registration)) return false;
-            final AbstractReginth<?>.Registration<?, ?> other = (AbstractReginth<?>.Registration<?, ?>) o;
+            if (!(o instanceof AbstractReginth<?>.Registration<?, ?> other)) return false;
             final Object this$name = this.getName();
             final Object other$name = other.getName();
-            if (this$name == null ? other$name != null : !this$name.equals(other$name)) return false;
+            if (!Objects.equals(this$name, other$name)) return false;
             final Object this$type = this.getType();
             final Object other$type = other.getType();
-            if (this$type == null ? other$type != null : !this$type.equals(other$type)) return false;
+            if (!Objects.equals(this$type, other$type)) return false;
             final Object this$creator = this.getCreator();
             final Object other$creator = other.getCreator();
-            if (this$creator == null ? other$creator != null : !this$creator.equals(other$creator)) return false;
+            if (!Objects.equals(this$creator, other$creator)) return false;
             final Object this$delegate = this.getDelegate();
             final Object other$delegate = other.getDelegate();
-            if (this$delegate == null ? other$delegate != null : !this$delegate.equals(other$delegate)) return false;
+            if (!Objects.equals(this$delegate, other$delegate)) return false;
             final Object this$callbacks = this.callbacks;
             final Object other$callbacks = other.callbacks;
-            if (this$callbacks == null ? other$callbacks != null : !this$callbacks.equals(other$callbacks))
-                return false;
-            return true;
+            return this$callbacks == null ? other$callbacks == null : this$callbacks.equals(other$callbacks);
         }
 
         @Override
@@ -375,7 +374,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * @throws NullPointerException     if current name has not been set via {@link #object(String)}
      */
     public <R, T extends R> RegistryEntry<R, T> get(ResourceKey<? extends Registry<R>> type) {
-        return this.<R, T>get(currentName(), type);
+        return this.get(currentName(), type);
     }
 
     /**
@@ -415,7 +414,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * @return A {@link RegistryEntry} which will supply the requested entry, if it exists
      */
     public <R, T extends R> Optional<RegistryEntry<R, T>> getOptional(String name, ResourceKey<? extends Registry<R>> type) {
-        Registration<R, T> reg = this.<R, T>getRegistrationUnchecked(name, type);
+        Registration<R, T> reg = this.getRegistrationUnchecked(name, type);
         return reg == null ? Optional.empty() : Optional.of(reg.getDelegate());
     }
 
@@ -426,7 +425,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     }
 
     private <R, T extends R> Registration<R, T> getRegistration(String name, ResourceKey<? extends Registry<R>> type) {
-        Registration<R, T> reg = this.<R, T>getRegistrationUnchecked(name, type);
+        Registration<R, T> reg = this.getRegistrationUnchecked(name, type);
         if (reg != null) {
             return reg;
         }
@@ -458,9 +457,9 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * @return This {@link AbstractReginth} instance
      */
     public <R, T extends R> S addRegisterCallback(String name, ResourceKey<? extends Registry<R>> registryType, NonNullConsumer<? super T> callback) {
-        Registration<R, T> reg = this.<R, T>getRegistrationUnchecked(name, registryType);
+        Registration<R, T> reg = this.getRegistrationUnchecked(name, registryType);
         if (reg == null) {
-            registerCallbacks.put(Pair.of(name, registryType), (NonNullConsumer<?>) callback);
+            registerCallbacks.put(Pair.of(name, registryType), callback);
         } else {
             reg.addRegisterCallback(callback);
         }
@@ -476,7 +475,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * @return This {@link AbstractReginth} instance
      */
     public <R> S addRegisterCallback(ResourceKey<? extends Registry<R>> registryType, Runnable callback) {
-        afterRegisterCallbacks.put((ResourceKey<? extends Registry<?>>) registryType, callback);
+        afterRegisterCallbacks.put(registryType, callback);
         return self();
     }
 
@@ -518,7 +517,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
      * @return this {@link AbstractReginth}
      */
     public <P extends ReginthProvider, R> S setDataGenerator(Builder<R, ?, ?, ?> builder, ProviderType<? extends P> type, NonNullConsumer<? extends P> cons) {
-        return this.<P, R>setDataGenerator(builder.getName(), builder.getRegistryKey(), type, cons);
+        return this.setDataGenerator(builder.getName(), builder.getRegistryKey(), type, cons);
     }
 
     /**
@@ -1123,7 +1122,7 @@ public abstract class AbstractReginth<S extends AbstractReginth<S>> {
     }
 
     public <T extends BaseFlowingFluid, P> FluidBuilder<T, P> fluid(P parent, String name, ResourceLocation stillTexture, ResourceLocation flowingTexture, FluidBuilder.FluidTypeFactory typeFactory, NonNullFunction<BaseFlowingFluid.Properties, T> fluidFactory) {
-        return entry(name, callback -> FluidBuilder.create(this, parent, name, callback, stillTexture, flowingTexture, typeFactory, fluidFactory));
+        return entry(name, callback -> FluidBuilder.create(this, parent, name, callback, stillTexture, flowingTexture, typeFactory, false, fluidFactory));
     }
 
     public <T extends BaseFlowingFluid, P> FluidBuilder<T, P> fluid(P parent, String name, ResourceLocation stillTexture, ResourceLocation flowingTexture, NonNullSupplier<FluidType> fluidType, NonNullFunction<BaseFlowingFluid.Properties, T> fluidFactory) {

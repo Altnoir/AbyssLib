@@ -151,7 +151,7 @@ public class ReginthLangProvider extends LanguageProvider implements ReginthProv
             char c = normal.charAt(i);
             if (c == '%') {
                 String fmtArg = "";
-                while (Character.isDigit(c) || c == '%' || c == '$' || c == 's' || c == 'd') { // TODO this is a bit lazy
+                while (Character.isDigit(c) || c == '%' || c == '$' || c == 's' || c == 'd') { // 只认格式占位符，不解析其它格式串
                     fmtArg += c;
                     i++;
                     c = i == normal.length() ? 0 : normal.charAt(i);

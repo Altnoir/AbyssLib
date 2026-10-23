@@ -66,7 +66,11 @@ Altnoir 系列模组的公共前置库。**NeoForge 1.21.1 / Java 21** · 包名
 
 ```gradle
 repositories {
-    maven { url = file("../AbyssLib/repo") }   // 本地发布仓库（先在 AbyssLib 下 ./gradlew publish）
+    maven {
+        name = "RingLoReleases"
+        url = "https://maven.ringlo.im/releases"
+        content { includeGroup "com.altnoir" }
+    }
 }
 
 dependencies {
@@ -687,7 +691,11 @@ BannerStyle.texture(3, "mymod:textures/gui/creative/banner")
 
 ```gradle
 repositories {
-    maven { url = file("../AbyssLib/repo") }   // 本地发布仓库（先 ./gradlew publish）
+    maven {
+        name = "RingLoReleases"
+        url = "https://maven.ringlo.im/releases"
+        content { includeGroup "com.altnoir" }
+    }
     // 1.4.0 起注册框架已源码内置，不再需要 mvn.devos.one（Registrate）仓库。
     // 需要 SBM 的模组请自行再加 jitpack（SBM 不再由 AbyssLib 提供）
     // maven { url = "https://jitpack.io" }
@@ -718,9 +726,8 @@ dependencies {
 > 用 `${minecraft_version}` 插值可以避免手写 MC 后缀写错：
 > `implementation("com.altnoir:abysslib-${minecraft_version}:${abysslib_version}")`。
 
-> **关于 `repo/`**：消费方目前读的是 AbyssLib 仓库里的本地 file 仓库 `../AbyssLib/repo`。
-> ⚠️ `./gradlew publish` 现在只发远端 `maven.ringlo.im`，**不再写本地 `repo/`**；
-> 本地 `repo/` 需要额外用一次性 init 脚本补发布（见 `HANDOFF.md` §2）。
+> **关于仓库来源**：消费方默认从 `https://maven.ringlo.im/releases` 获取 AbyssLib，构建不依赖本地 `repo/`。
+> 本地 Maven 仓库仅适用于验证尚未发布的 AbyssLib 改动。
 
 > **不再需要 `mvn.devos.one` 仓库**。旧版本（≤1.3.0）需要它解析 AbyssLib `api` 传递出的 Registrate 构件；
 > 1.4.0 起 Reginth 的类直接随 jar 发布，那条仓库可以删掉。

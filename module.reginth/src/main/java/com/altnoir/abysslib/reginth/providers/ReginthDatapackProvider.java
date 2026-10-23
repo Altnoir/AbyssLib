@@ -12,18 +12,18 @@ import java.util.concurrent.CompletableFuture;
 
 public class ReginthDatapackProvider extends DatapackBuiltinEntriesProvider implements ReginthLookupFillerProvider {
 
-	public ReginthDatapackProvider(AbstractReginth<?> parent, PackOutput output, CompletableFuture<HolderLookup.Provider> provider) {
-		super(output, RegistryPatchGenerator.createLookup(provider, parent.getDataGenInitializer().getDatapackRegistryProviders()), Set.of(parent.getModid()));
-	}
+    public ReginthDatapackProvider(AbstractReginth<?> parent, PackOutput output, CompletableFuture<HolderLookup.Provider> provider) {
+        super(output, RegistryPatchGenerator.createLookup(provider, parent.getDataGenInitializer().getDatapackRegistryProviders()), Set.of(parent.getModid()));
+    }
 
-	@Override
-	public CompletableFuture<HolderLookup.Provider> getFilledProvider() {
-		return getRegistryProvider();
-	}
+    @Override
+    public CompletableFuture<HolderLookup.Provider> getFilledProvider() {
+        return getRegistryProvider();
+    }
 
-	@Override
-	public LogicalSide getSide() {
-		return LogicalSide.SERVER;
-	}
+    @Override
+    public LogicalSide getSide() {
+        return LogicalSide.SERVER;
+    }
 
 }

@@ -17,6 +17,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.LogicalSide;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.common.conditions.WithConditions;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -28,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class ReginthAdvancementProvider implements ReginthProvider, Consumer<AdvancementHolder> {
-    private static final org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger(ReginthAdvancementProvider.class);
+    private static final Logger log = LogManager.getLogger(ReginthAdvancementProvider.class);
     private static final Gson GSON = (new GsonBuilder()).setPrettyPrinting().create();
     private final AbstractReginth<?> owner;
     private final PackOutput packOutput;
@@ -61,7 +64,7 @@ public class ReginthAdvancementProvider implements ReginthProvider, Consumer<Adv
 
     @Nullable
     private CachedOutput cache;
-    private Set<ResourceLocation> seenAdvancements = new HashSet<>();
+    private final Set<ResourceLocation> seenAdvancements = new HashSet<>();
 
     @Override
     public CompletableFuture<?> run(CachedOutput cache) {

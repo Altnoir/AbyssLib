@@ -87,7 +87,7 @@ public class EntityBuilder<T extends Entity, P> extends AbstractBuilder<EntityTy
     @Nullable
     private NonNullSupplier<NonNullFunction<EntityRendererProvider.Context, EntityRenderer<? super T>>> renderer;
 
-    private boolean attributesConfigured, spawnConfigured; // TODO make this more reuse friendly
+    private boolean attributesConfigured, spawnConfigured;
 
     protected EntityBuilder(AbstractReginth<?> owner, P parent, String name, BuilderCallback callback, EntityType.EntityFactory<T> factory, MobCategory classification) {
         super(owner, parent, name, callback, Registries.ENTITY_TYPE);
@@ -180,15 +180,6 @@ public class EntityBuilder<T extends Entity, P> extends AbstractBuilder<EntityTy
         }
         spawnConfigured = true;
         this.onRegister(t -> {
-            /* TODO is there any way to do this now?
-            try {
-                if (!(t.create(null) instanceof MobEntity)) {
-                    throw new IllegalArgumentException("Cannot register spawn placement for entity " + t.getRegistryName() + " as it does not extend MobEntity");
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to type check entity " + t.getRegistryName() + " when registering spawn placement", e);
-            }
-            */
             OneTimeEventReceiver.addModListener(getOwner(), RegisterSpawnPlacementsEvent.class, e -> {
                 e.register(t, type, heightmap, predicate, operation);
             });

@@ -20,7 +20,7 @@ public interface ReginthTagsProvider<T> extends ReginthLookupFillerProvider {
 
     CompletableFuture<TagsProvider.TagLookup<T>> contentsGetter();
 
-	ResourceKey<? extends Registry<T>> registry();
+    ResourceKey<? extends Registry<T>> registry();
 
     class Impl<T> extends TagsProvider<T> implements ReginthTagsProvider<T> {
         private final AbstractReginth<?> owner;
@@ -60,12 +60,12 @@ public interface ReginthTagsProvider<T> extends ReginthLookupFillerProvider {
             return createContentsProvider();
         }
 
-		@Override
-		public ResourceKey<? extends Registry<T>> registry() {
-			return registryKey;
-		}
+        @Override
+        public ResourceKey<? extends Registry<T>> registry() {
+            return registryKey;
+        }
 
-	}
+    }
 
     class IntrinsicImpl<T> extends IntrinsicHolderTagsProvider<T> implements ReginthTagsProvider<T> {
         private final AbstractReginth<?> owner;
@@ -105,10 +105,10 @@ public interface ReginthTagsProvider<T> extends ReginthLookupFillerProvider {
             return createContentsProvider();
         }
 
-		@Override
-		public ResourceKey<? extends Registry<T>> registry() {
-			return registryKey;
-		}
+        @Override
+        public ResourceKey<? extends Registry<T>> registry() {
+            return registryKey;
+        }
 
-	}
+    }
 }

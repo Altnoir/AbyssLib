@@ -105,7 +105,6 @@ public interface ProviderType<T extends ReginthProvider> {
 
     }
 
-    // TODO this is clunky af
     @Deprecated
     @Nonnull
     static <T extends ReginthProvider> ProviderType<T> registerDelegate(String name, NonNullUnaryOperator<ProviderType<T>> type) {

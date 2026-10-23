@@ -24,7 +24,7 @@ public class FluidEntry<T extends BaseFlowingFluid> extends RegistryEntry<Fluid,
         BlockEntry<? extends Block> block = null;
         try {
             block = BlockEntry.cast(getSibling(BuiltInRegistries.BLOCK));
-        } catch (IllegalArgumentException e) {} // TODO add way to get entry optionally
+        } catch (IllegalArgumentException e) {}
         this.block = block;
     }
 

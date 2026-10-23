@@ -1,6 +1,7 @@
 package com.altnoir.abysslib.structure;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Blocks;
@@ -113,7 +114,7 @@ public final class ALStructureEnhancementCheck {
             tag.putInt("sizeX", ALStructureLimits.STRUCTURE_BLOCK_MAX_SIZE);
 
             Method load = StructureBlockEntity.class.getDeclaredMethod(
-                    "loadAdditional", CompoundTag.class, net.minecraft.core.HolderLookup.Provider.class);
+                    "loadAdditional", CompoundTag.class, HolderLookup.Provider.class);
             load.setAccessible(true);
             load.invoke(blockEntity, tag, RegistryAccess.EMPTY);
 
